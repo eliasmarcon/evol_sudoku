@@ -9,8 +9,8 @@
 using namespace std;
 
 const int SUDOKU_SIZE = 9;
-const int POPULATION_SIZE = 500;
-const int MAX_GENERATIONS = 2000;
+const int POPULATION_SIZE = 3;
+const int MAX_GENERATIONS = 2;
 
 // Objective function for Sudoku
 float objective(GAGenome& g) {
