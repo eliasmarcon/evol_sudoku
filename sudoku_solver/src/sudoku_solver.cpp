@@ -292,7 +292,7 @@ int mutator(GAGenome& g, float p) {
     for (int i = 0; i < SUDOKU_SIZE; i++) {
         for (int j = 0; j < SUDOKU_SIZE; j++) {
             // Check if the cell is marked and the mutation probability is met
-            if (GAFlipCoin(p) && markedCells[i][j] == 1) {
+            if (markedCells[i][j] == 1 && GAFlipCoin(p)) {
                 // Find another marked cell to swap values with
                 int x, y;
                 do {
@@ -312,10 +312,11 @@ int mutator(GAGenome& g, float p) {
 
     return nMutations;
 }
-
+/*
 bool getRandomBool() {
     return rand() % 2 == 0;
 }
+*/
 
 // Define the crossover function
 int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2) {
@@ -328,7 +329,7 @@ int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2
 
         for (int i = 0; i < SUDOKU_SIZE; i++) {
             for (int j = 0; j < SUDOKU_SIZE; j++) {
-                if (markedCells[i][j] == 1 && getRandomBool()) {
+                if (markedCells[i][j] == 1 && GAFlipCoin(0.5)) {
                     child1.gene(i, j, parent2.gene(i, j));
                     child2.gene(i, j, parent1.gene(i, j));
                 } else {
@@ -344,7 +345,7 @@ int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2
 
         for (int i = 0; i < SUDOKU_SIZE; i++) {
             for (int j = 0; j < SUDOKU_SIZE; j++) {
-                if (markedCells[i][j] == 1 && getRandomBool()) {
+                if (markedCells[i][j] == 1 && GAFlipCoin(0.5)) {
                     child.gene(i, j, parent2.gene(i, j));
                 } else {
                     child.gene(i, j, parent1.gene(i, j));

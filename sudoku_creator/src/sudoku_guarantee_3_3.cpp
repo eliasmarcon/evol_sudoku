@@ -68,55 +68,71 @@ float objective(GAGenome& g) {
     return (float)fitness;
 }
 
-
 // Initializer
 void initializer(GAGenome& g) {
     GA2DArrayGenome<int>& genome = (GA2DArrayGenome<int>&)g;
 
+    // Create a vector with numbers 1 to 9
+    std::vector<int> numbers;
+    for (int num = 1; num <= SUDOKU_SIZE; ++num) {
+        numbers.push_back(num);
+    }
+
     // Seed for the random number generator
     std::default_random_engine rng(std::random_device{}());
 
-    for (int i = 0; i < SUDOKU_SIZE; i++) {
-        // Generate an array of candidates for the row
-        std::vector<int> candidates;
-        for (int j = 0; j < SUDOKU_SIZE; j++) {
-            candidates.push_back((i * 3 + i / 3 + j) % SUDOKU_SIZE + 1);
-        }
+    // Shuffle the numbers randomly
+    std::shuffle(numbers.begin(), numbers.end(), rng);
 
-        // Shuffle the candidates randomly
-        std::shuffle(candidates.begin(), candidates.end(), rng);
+    for (int i = 0; i < SUDOKU_SIZE; i += 3) {
+        for (int j = 0; j < SUDOKU_SIZE; j += 3) {
 
-        /*
-        // Shuffle the candidates by swapping elements randomly
-        for (int j = SUDOKU_SIZE - 1; j > 0; j--) {
-            int randIndex = std::uniform_int_distribution<int>(0, j)(rng);
-            std::swap(candidates[j], candidates[randIndex]);
-        }
-        */
+            std::shuffle(numbers.begin(), numbers.end(), rng);
 
-
-        // Set the genes in the genome based on the shuffled candidates
-        for (int j = 0; j < SUDOKU_SIZE; j++) {
-            genome.gene(i, j, candidates[j]);
+            for (int k = 0; k < 3; ++k) {
+                for (int l = 0; l < 3; ++l) {
+                    genome.gene(i + k, j + l, numbers[k * 3 + l]);
+                }
+            }
         }
     }
-
+    /*
+    for (int i = 0; i < SUDOKU_SIZE; i++) {
+        for (int j = 0; j < SUDOKU_SIZE; j++){
+            cout << genome.gene(i, j) << " ";
+        }
+        cout << endl;
+    }
+    cout << endl;
+    */
 }
 
+// Mutator
 int mutator(GAGenome& g, float p) {
     GA2DArrayGenome<int>& genome = (GA2DArrayGenome<int>&)g;
 
     int nMutations = 0;
-    for (int i = 0; i < SUDOKU_SIZE; i++) {
-        for (int j = 0; j < SUDOKU_SIZE; j++) {
+
+    std::default_random_engine rng(std::random_device{}());
+    
+    // Shuffle all 3x3 subgrids randomly, including a coin flip to decide whether to shuffle or not
+    for (int blockRow = 0; blockRow < 3; blockRow++) {
+        for (int blockCol = 0; blockCol < 3; blockCol++) {
             if (GAFlipCoin(p)) {
-                int x = rand() % SUDOKU_SIZE;
-                int y = rand() % SUDOKU_SIZE;
+                std::vector<int> numbers;
+                for (int i = 0; i < 3; ++i) {
+                    for (int j = 0; j < 3; j++) {
+                        numbers.push_back(genome.gene(blockRow * 3 + i, blockCol * 3 + j));
+                    }
+                }
 
-                int temp = genome.gene(i, j);
-                genome.gene(i, j, genome.gene(x, y));
-                genome.gene(x, y, temp);
+                std::shuffle(numbers.begin(), numbers.end(), rng);
 
+                for (int i = 0; i < 3; ++i) {
+                    for (int j = 0; j < 3; j++) {
+                        genome.gene(blockRow * 3 + i, blockCol * 3 + j, numbers[i * 3 + j]);
+                    }
+                }
                 nMutations++;
             }
         }
@@ -134,17 +150,27 @@ int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2
         GA2DArrayGenome<int>& child1 = (GA2DArrayGenome<int>&)*c1;
         GA2DArrayGenome<int>& child2 = (GA2DArrayGenome<int>&)*c2;
 
-        int cutRow = rand() % SUDOKU_SIZE;
-        int cutCol = rand() % SUDOKU_SIZE;
+        // Switch a random amount of 3x3 subgrids
+        int nSwitches = rand() % 9 + 1;
 
-        for (int i = 0; i < SUDOKU_SIZE; i++) {
-            for (int j = 0; j < SUDOKU_SIZE; j++) {
-                if (i < cutRow || (i == cutRow && j < cutCol)) {
-                    child1.gene(i, j, parent1.gene(i, j));
-                    child2.gene(i, j, parent2.gene(i, j));
-                } else {
-                    child1.gene(i, j, parent2.gene(i, j));
-                    child2.gene(i, j, parent1.gene(i, j));
+        for (int i = 0; i < nSwitches; ++i) {
+            int blockRow1 = rand() % 3;
+            int blockCol1 = rand() % 3;
+
+            if (GAFlipCoin(0.5)) {
+                for (int i = 0; i < 3; ++i) {
+                    for (int j = 0; j < 3; j++) {
+                        child1.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent2.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
+                        child2.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent1.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
+                    }
+                }
+            }
+            else{
+                for (int i = 0; i < 3; ++i) {
+                    for (int j = 0; j < 3; j++) {
+                        child1.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent1.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
+                        child2.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent2.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
+                    }
                 }
             }
         }
@@ -152,19 +178,30 @@ int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2
         return 2;
     } else if (c1) {
         GA2DArrayGenome<int>& child = (GA2DArrayGenome<int>&)*c1;
-        int cutRow = rand() % SUDOKU_SIZE;
-        int cutCol = rand() % SUDOKU_SIZE;
+        
+        // Switch a random amount of 3x3 subgrids
+        int nSwitches = rand() % 9 + 1;
 
-        for (int i = 0; i < SUDOKU_SIZE; i++) {
-            for (int j = 0; j < SUDOKU_SIZE; j++) {
-                if (i < cutRow || (i == cutRow && j < cutCol)) {
-                    child.gene(i, j, parent1.gene(i, j));
-                } else {
-                    child.gene(i, j, parent2.gene(i, j));
+        for (int i = 0; i < nSwitches; ++i) {
+            int blockRow1 = rand() % 3;
+            int blockCol1 = rand() % 3;
+
+            if (GAFlipCoin(0.5)) {
+                for (int i = 0; i < 3; ++i) {
+                    for (int j = 0; j < 3; j++) {
+                        child.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent2.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
+                    }
+                }
+            }
+            else{
+                for (int i = 0; i < 3; ++i) {
+                    for (int j = 0; j < 3; j++) {
+                        child.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent1.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
+                    }
                 }
             }
         }
-
+        
         return 1;
     } else {
         return 0;
@@ -246,8 +283,8 @@ int main() {
     GASimpleGA ga(genome);
     ga.populationSize(POPULATION_SIZE);
     ga.nGenerations(MAX_GENERATIONS);
-    ga.pMutation(0.05); //0.05
-    ga.pCrossover(0.9); //0.9
+    ga.pMutation(0.05);
+    ga.pCrossover(0.9);
     ga.evolve();
 
     const GA2DArrayGenome<int>& bestGenome = (GA2DArrayGenome<int>&)ga.statistics().bestIndividual();
@@ -272,3 +309,4 @@ int main() {
 
     return 0;
 }
+

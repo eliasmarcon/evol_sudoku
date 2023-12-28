@@ -31,7 +31,7 @@ fi
 
 
 # Compile the C++ file
-g++ -o $executable $cpp_file -lga -fpermissive
+g++ -o $executable $cpp_file -lga -fpermissive -Ofast
 
 # Running the executable
 echo "Running the sudoku solver..."
