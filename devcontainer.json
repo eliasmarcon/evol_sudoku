@@ -1,0 +1,12 @@
+{
+    "name": "My GaLib Dev Container",
+    "dockerFile": "Dockerfile",
+    "customizations": {
+        "vscode": {
+            "settings": { 
+                "terminal.integrated.shell.linux": "/bin/bash"
+            }
+        }
+    }
+    // "forwardPorts": [8080], // Uncomment or modify if port forwarding is needed
+}
