@@ -7,18 +7,25 @@
 
 using namespace std;
 
+//removing numbers 
+//https://puzzling.stackexchange.com/questions/142/removing-numbers-from-a-full-sudoku-puzzle-to-create-one-with-a-unique-solution
+
 // Define the Sudoku puzzle size
 const int SUDOKU_SIZE = 9;
-const int POPULATION_SIZE = 2000;
-const int MAX_GENERATIONS = 15000;
-const int NUMBERS_TO_REMOVE = 10;
 const unsigned int SEED = 42;  // Choose any seed value
+int POPULATION_SIZE = 2500; //2000
+int MAX_GENERATIONS = 15000; //15000
+int NUMBERS_TO_REMOVE = 10;
 int REPLACE_COUNTER = 0;
 
 // Global vector to store whether each cell is marked
 std::vector<std::vector<int>> markedCells(SUDOKU_SIZE, std::vector<int>(SUDOKU_SIZE, 0));
 
+// Global vector to store the Sudoku puzzle
+std::vector<std::vector<int>> sudoku(SUDOKU_SIZE, std::vector<int>(SUDOKU_SIZE, 0));
 
+
+/*
 int puzzle[SUDOKU_SIZE][SUDOKU_SIZE] = {
     {1, 2, 5, 8, 9, 7, 4, 3, 6},
     {3, 4, 8, 1, 2, 6, 9, 5, 7},
@@ -42,6 +49,62 @@ std::vector<std::vector<int>> convertToVector(const int puzzle[SUDOKU_SIZE][SUDO
     }
 
     return sudoku;
+}
+
+*/
+
+// Load Sudoku into a 2D vector
+void loadSudoku(std::vector<std::vector<int>>& sudoku, int puzzleNumber) {
+    // Open the file
+    std::ifstream file("sudoku_solutions.txt");
+
+    // Check if the file is open
+    if (!file.is_open()) {
+        std::cerr << "Error opening the file.\n";
+        return;
+    }
+
+    std::string line;
+
+    // Move to the desired puzzle number
+    while (std::getline(file, line) && puzzleNumber > 1) {
+        --puzzleNumber;
+    }
+
+    //std::cout << line << std::endl;
+
+    // Read the puzzle line
+    for (int i = 0; i < SUDOKU_SIZE; ++i) {
+        for (int j = 0; j < SUDOKU_SIZE; ++j) {
+            sudoku[i][j] = line[i * SUDOKU_SIZE + j] - '0'; // Convert char to int
+        }
+    }
+
+    // Close the file
+    file.close();
+}
+
+// Function to print the Sudoku field
+void printSudoku(const std::vector<std::vector<int>>& sudoku, std::string title) {
+
+    cout << title << endl;
+
+    for (int i = 0; i < SUDOKU_SIZE; ++i) {
+        if (i > 0 && i % 3 == 0) {
+            std::cout << "---------------------" << std::endl;
+        }
+
+        for (int j = 0; j < SUDOKU_SIZE; ++j) {
+            if (j > 0 && j % 3 == 0) {
+                std::cout << "| ";
+            }
+
+            std::cout << sudoku[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    cout << endl;
 }
 
 string validSudoku(const std::vector<std::vector<int>>& sudoku) {
@@ -155,7 +218,7 @@ float objective(GAGenome& g) {
 // Define the initializer function
 void initializer(GAGenome& g) {
     
-    std::vector<std::vector<int>> sudoku = convertToVector(puzzle);
+    //std::vector<std::vector<int>> sudoku = convertToVector(puzzle);
 
     /*
     string valid = validSudoku(sudoku);
@@ -163,7 +226,8 @@ void initializer(GAGenome& g) {
     */
 
     // remove random numbers
-    std::mt19937 rng(SEED);  // Mersenne Twister random number generator
+    //std::mt19937 rng(SEED);  // Mersenne Twister random number generator
+    std::mt19937 rng(std::random_device{}());
     std::uniform_int_distribution<int> dist(0, SUDOKU_SIZE - 1);
 
     if (REPLACE_COUNTER < 1)
@@ -181,6 +245,7 @@ void initializer(GAGenome& g) {
         }
 
         ++REPLACE_COUNTER;
+        printSudoku(markedCells, "\nChanged cells:");
     }
 
     // replace values for other instances
@@ -293,34 +358,52 @@ int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2
     }
 }
 
-// Function to print the Sudoku field
-void printSudoku(const std::vector<std::vector<int>>& sudoku) {
-    for (int i = 0; i < SUDOKU_SIZE; ++i) {
-        if (i > 0 && i % 3 == 0) {
-            std::cout << "---------------------" << std::endl;
-        }
+void setPopulationSizeAndGenerations(int& NUMBERS_TO_REMOVE){
 
-        for (int j = 0; j < SUDOKU_SIZE; ++j) {
-            if (j > 0 && j % 3 == 0) {
-                std::cout << "| ";
-            }
+    if (NUMBERS_TO_REMOVE < 5){
 
-            std::cout << sudoku[i][j] << " ";
-        }
-        std::cout << std::endl;
+        POPULATION_SIZE = 1000;
+        MAX_GENERATIONS = 10000;
+
+    } else if (NUMBERS_TO_REMOVE > 5 && NUMBERS_TO_REMOVE < 10){
+
+        POPULATION_SIZE = 2500;
+        MAX_GENERATIONS = 15000;
+
+    }else if (NUMBERS_TO_REMOVE > 10 && NUMBERS_TO_REMOVE < 15){
+
+        POPULATION_SIZE = 5000;
+        MAX_GENERATIONS = 30000;
+
+    }else if (NUMBERS_TO_REMOVE > 15 && NUMBERS_TO_REMOVE < 20){
+            
+        POPULATION_SIZE = 10000;
+        MAX_GENERATIONS = 50000;
+
+    }else{
+            
+        POPULATION_SIZE = 20000;
+        MAX_GENERATIONS = 1000000;
     }
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+
+    int sudoku_number = atoi(argv[1]);
+    NUMBERS_TO_REMOVE = atoi(argv[2]);
+
+    setPopulationSizeAndGenerations(NUMBERS_TO_REMOVE);
+
+    cout << "\nSudoku number: " << sudoku_number << endl;
+    cout << "Numbers to remove: " << NUMBERS_TO_REMOVE << endl;
+    cout << "Population size: " << POPULATION_SIZE << endl;
+    cout << "Max generations: " << MAX_GENERATIONS << endl;
 
     // Define the Sudoku puzzle
-    std::vector<std::vector<int>> sudoku(SUDOKU_SIZE, std::vector<int>(SUDOKU_SIZE, 0));
-
-    for (int i = 0; i < SUDOKU_SIZE; i++) {
-        for (int j = 0; j < SUDOKU_SIZE; j++) {
-            sudoku[i][j] = puzzle[i][j];
-        }
-    }
+    loadSudoku(sudoku, sudoku_number);
+    string valid = validSudoku(sudoku);
+    cout << "\nAnswer to initial loaded Sudoku valid? --> " << valid << endl;
+    //printSudoku(sudoku);
 
     // Create the initial population
     GA2DArrayGenome<int> genome(SUDOKU_SIZE, SUDOKU_SIZE, objective);
@@ -350,12 +433,10 @@ int main() {
         }
     }
 
-    cout << "Sudoku Field" << endl;
-    printSudoku(solvedSudoku);
-    cout << endl;
+    printSudoku(solvedSudoku, "\nSudoku Field");
 
-    string valid = validSudoku(solvedSudoku);
-    cout << "Answer to valid Sudoku 2: " << valid << endl;
+    string solvedValid = validSudoku(solvedSudoku);
+    cout << "Answer to solved Sudoku valid? --> " << solvedValid << endl;
 
     return 0;
 }
