@@ -13,4 +13,3 @@ $(TARGET): sudoku_genetic.cpp
 
 clean:
 	rm -f $(TARGET)
-
