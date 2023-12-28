@@ -1,6 +1,6 @@
 FROM ubuntu:latest
 
-ARG USERNAME=jlangela
+ARG USERNAME=evol
 
 RUN useradd -m -s /bin/bash ${USERNAME} && \
     mkdir -p /etc/sudoers.d && \
