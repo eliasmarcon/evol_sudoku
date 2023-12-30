@@ -122,34 +122,35 @@ string validSudoku(const std::vector<std::vector<int>>& sudoku) {
 
 void setPopulationSizeAndGenerations(int& NUMBERS_TO_REMOVE){
 
-    if (NUMBERS_TO_REMOVE <= 5){
+    /*
+    POPULATION_SIZE = 500 * NUMBERS_TO_REMOVE;
+    MAX_GENERATIONS = 3000 * NUMBERS_TO_REMOVE;
+    */
+    if (NUMBERS_TO_REMOVE <= 4){
 
-        /*
-        POPULATION_SIZE = 1000;
-        MAX_GENERATIONS = 10000;
-        */
-        POPULATION_SIZE = 10;
-        MAX_GENERATIONS = 100;
+        POPULATION_SIZE = 500;
+        MAX_GENERATIONS = 1500;
 
-    } else if (NUMBERS_TO_REMOVE > 5 && NUMBERS_TO_REMOVE <= 10){
+    } else if (NUMBERS_TO_REMOVE > 4 && NUMBERS_TO_REMOVE <= 10){
 
-        POPULATION_SIZE = 2500;
-        MAX_GENERATIONS = 20000;
+        POPULATION_SIZE = 550 * NUMBERS_TO_REMOVE;
+        MAX_GENERATIONS = 3500 * NUMBERS_TO_REMOVE;
 
     }else if (NUMBERS_TO_REMOVE > 10 && NUMBERS_TO_REMOVE <= 15){
 
-        POPULATION_SIZE = 5000;
-        MAX_GENERATIONS = 35000;
+        POPULATION_SIZE = 650 * NUMBERS_TO_REMOVE;
+        MAX_GENERATIONS = 3650 * NUMBERS_TO_REMOVE;
 
-    }else if (NUMBERS_TO_REMOVE > 15 && NUMBERS_TO_REMOVE <= 20){
+    }else if (NUMBERS_TO_REMOVE > 15 && NUMBERS_TO_REMOVE <= 25){
             
-        POPULATION_SIZE = 10000;
-        MAX_GENERATIONS = 50000;
+        POPULATION_SIZE = 750 * NUMBERS_TO_REMOVE;
+        MAX_GENERATIONS = 3800 * NUMBERS_TO_REMOVE;
 
     }else{
             
-        POPULATION_SIZE = 20000;
-        MAX_GENERATIONS = 1000000;
+        POPULATION_SIZE = 850 * NUMBERS_TO_REMOVE;
+        MAX_GENERATIONS = 4000 * NUMBERS_TO_REMOVE;
+    
     }
 }
 
@@ -192,7 +193,6 @@ bool isValidPlace(int row, int col, int num) {
 }
 
 bool solveSudoku(int &solutionsCount, int maxSolutions) {
-    printSudoku(sudoku, "\nSudoku Field check");
     int row, col;
     if (!findEmptyPlace(row, col)) {
         solutionsCount++;
@@ -322,17 +322,10 @@ void initializer(GAGenome& g) {
             }
         }
 
-        printSudoku(sudoku, "\nInitial Sudoku Field with 0");
-
         while (!hasUniqueSolution()) {
             // Adjust numbers to remove and try again
             NUMBERS_TO_REMOVE--;
             std::cout << "Adjusting numbers to remove: " << NUMBERS_TO_REMOVE << std::endl;
-
-            if (NUMBERS_TO_REMOVE == 0) {
-                std::cerr << "No solution found for the given Sudoku puzzle.\n";
-                exit(1);
-            }
 
             sudoku = initialSudoku;
             markedCells = initialMarkedCells;
@@ -362,6 +355,8 @@ void initializer(GAGenome& g) {
 
         ++REPLACE_COUNTER;
         printSudoku(markedCells, "\nChanged cells:");
+        printSudoku(sudoku, "Beginning Sudoku Example:");
+
     }
 
     // replace values for other instances
@@ -479,10 +474,15 @@ int main(int argc, char* argv[]) {
 
     setPopulationSizeAndGenerations(NUMBERS_TO_REMOVE);
 
-    cout << "\nSudoku number: " << sudoku_number << endl;
+    cout << "Sudoku number: " << sudoku_number << endl;
     cout << "Numbers to remove: " << NUMBERS_TO_REMOVE << endl;
     cout << "Population size: " << POPULATION_SIZE << endl;
     cout << "Max generations: " << MAX_GENERATIONS << endl;
+    cout << endl;
+
+    // Define the Sudoku puzzle
+    loadSudoku(sudoku, sudoku_number);
+    printSudoku(sudoku, "Pre-Solved Sudoku Field Number " + to_string(sudoku_number) + ":");
 
     // Create the initial population
     GA2DArrayGenome<int> genome(SUDOKU_SIZE, SUDOKU_SIZE, objective);
@@ -512,7 +512,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    printSudoku(solvedSudoku, "\nSudoku Field");
+    printSudoku(solvedSudoku, "Finished Sudoku Field:");
 
     string solvedValid = validSudoku(solvedSudoku);
     cout << "Answer to solved Sudoku valid? --> " << solvedValid << endl;

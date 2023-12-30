@@ -25,8 +25,8 @@ if [ "$sudokuNumber" -lt 1 ] || [ "$sudokuNumber" -gt "$lineCount" ]; then
 fi
 
 # check if the numbers to remove are valid has to be between 1 and 15
-if [ "$numbersToRemove" -lt 1 ] || [ "$numbersToRemove" -gt 81 ]; then
-    echo "The numbers to remove has to be between 1 and 81"
+if [ "$numbersToRemove" -lt 2 ] || [ "$numbersToRemove" -gt 81 ]; then
+    echo "The numbers to remove has to be between 2 and 81"
     exit 1
 fi
 
