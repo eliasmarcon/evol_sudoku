@@ -13,8 +13,8 @@
 using namespace std;
 
 const int SUDOKU_SIZE = 9;
-const int POPULATION_SIZE = 40000;
-const int MAX_GENERATIONS = 50000;
+const int POPULATION_SIZE = 2;
+const int MAX_GENERATIONS = 10;
 
 // Objective function for Sudoku
 float objective(GAGenome& g) {
@@ -115,10 +115,13 @@ int mutator(GAGenome& g, float p) {
 
     std::default_random_engine rng(std::random_device{}());
     
-    // Shuffle all 3x3 subgrids randomly, including a coin flip to decide whether to shuffle or not
+    // Shuffle all 3x3 subgrids randomly except the first 3x3 subgrid the fifth and the last subgrid, including a coin flip to decide whether to shuffle or not
     for (int blockRow = 0; blockRow < 3; blockRow++) {
         for (int blockCol = 0; blockCol < 3; blockCol++) {
-            if (GAFlipCoin(p)) {
+            // Check if it's the first, fifth, or last subgrid
+            bool shouldShuffle = GAFlipCoin(p) && (blockRow != 0 || blockCol != 0) && (blockRow != 1 || blockCol != 1) && (blockRow != 2 || blockCol != 2);
+
+            if (shouldShuffle) {
                 std::vector<int> numbers;
                 for (int i = 0; i < 3; ++i) {
                     for (int j = 0; j < 3; j++) {
@@ -151,13 +154,15 @@ int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2
         GA2DArrayGenome<int>& child2 = (GA2DArrayGenome<int>&)*c2;
 
         // Switch a random amount of 3x3 subgrids
-        int nSwitches = rand() % 9 + 1;
+        std::default_random_engine rng(std::random_device{}());
+        int nSwitches = std::uniform_int_distribution<int>(1, 6)(rng);
 
         for (int i = 0; i < nSwitches; ++i) {
-            int blockRow1 = rand() % 3;
-            int blockCol1 = rand() % 3;
+            
+            int blockRow1 = std::uniform_int_distribution<int>(0, 2)(rng);
+            int blockCol1 = std::uniform_int_distribution<int>(0, 2)(rng);
 
-            if (GAFlipCoin(0.5)) {
+            if (GAFlipCoin(0.5) && (blockRow1 != 0 || blockCol1 != 0) && (blockRow1 != 1 || blockCol1 != 1) && (blockRow1 != 2 || blockCol1 != 2)) {
                 for (int i = 0; i < 3; ++i) {
                     for (int j = 0; j < 3; j++) {
                         child1.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent2.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
@@ -165,13 +170,16 @@ int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2
                     }
                 }
             }
-            else{
+            else if ((blockRow1 != 0 || blockCol1 != 0) && (blockRow1 != 1 || blockCol1 != 1) && (blockRow1 != 2 || blockCol1 != 2)){
                 for (int i = 0; i < 3; ++i) {
                     for (int j = 0; j < 3; j++) {
                         child1.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent1.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
                         child2.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent2.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
                     }
                 }
+            }
+            else {
+                i--;
             }
         }
 
@@ -180,25 +188,29 @@ int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2
         GA2DArrayGenome<int>& child = (GA2DArrayGenome<int>&)*c1;
         
         // Switch a random amount of 3x3 subgrids
-        int nSwitches = rand() % 9 + 1;
+        std::default_random_engine rng(std::random_device{}());
+        int nSwitches = std::uniform_int_distribution<int>(1, 6)(rng);
 
         for (int i = 0; i < nSwitches; ++i) {
-            int blockRow1 = rand() % 3;
-            int blockCol1 = rand() % 3;
+            int blockRow1 = std::uniform_int_distribution<int>(0, 2)(rng);
+            int blockCol1 = std::uniform_int_distribution<int>(0, 2)(rng);
 
-            if (GAFlipCoin(0.5)) {
+            if (GAFlipCoin(0.5) && (blockRow1 != 0 || blockCol1 != 0) && (blockRow1 != 1 || blockCol1 != 1) && (blockRow1 != 2 || blockCol1 != 2))) {
                 for (int i = 0; i < 3; ++i) {
                     for (int j = 0; j < 3; j++) {
                         child.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent2.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
                     }
                 }
             }
-            else{
+            else if((blockRow1 != 0 || blockCol1 != 0) && (blockRow1 != 1 || blockCol1 != 1) && (blockRow1 != 2 || blockCol1 != 2)){
                 for (int i = 0; i < 3; ++i) {
                     for (int j = 0; j < 3; j++) {
                         child.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent1.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
                     }
                 }
+            }
+            else{
+                i--;
             }
         }
         
