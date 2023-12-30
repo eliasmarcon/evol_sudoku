@@ -13,8 +13,12 @@
 using namespace std;
 
 const int SUDOKU_SIZE = 9;
-const int POPULATION_SIZE = 2;
-const int MAX_GENERATIONS = 10;
+const int POPULATION_SIZE = 8000;
+const int MAX_GENERATIONS = 30000;
+
+bool PRINT_COUNTER = true;
+//123456789/123456789/123456789
+std::vector<int> fixedCells = std::vector<int>(SUDOKU_SIZE * 3, 0);
 
 // Objective function for Sudoku
 float objective(GAGenome& g) {
@@ -43,7 +47,7 @@ float objective(GAGenome& g) {
             }
         }
     }
-
+    /*
     // Check each 3x3 subgrid for duplicates
     for (int blockRow = 0; blockRow < 3; blockRow++) {
         for (int blockCol = 0; blockCol < 3; blockCol++) {
@@ -64,7 +68,7 @@ float objective(GAGenome& g) {
             }
         }
     }
-
+    */
     return (float)fitness;
 }
 
@@ -84,6 +88,18 @@ void initializer(GAGenome& g) {
     // Shuffle the numbers randomly
     std::shuffle(numbers.begin(), numbers.end(), rng);
 
+    if (fixedCells[0] == 0){
+        int counter = 0;
+        // init the 1th, 5th and 9th subgrid
+        for (int i = 0; i < 3; ++i) {
+            std::shuffle(numbers.begin(), numbers.end(), rng);
+            for (int j = 0; j < numbers.size(); ++j) {
+                fixedCells[counter] = numbers[j];
+                counter++;
+            }
+        }
+    }
+
     for (int i = 0; i < SUDOKU_SIZE; i += 3) {
         for (int j = 0; j < SUDOKU_SIZE; j += 3) {
 
@@ -96,15 +112,29 @@ void initializer(GAGenome& g) {
             }
         }
     }
-    /*
-    for (int i = 0; i < SUDOKU_SIZE; i++) {
-        for (int j = 0; j < SUDOKU_SIZE; j++){
-            cout << genome.gene(i, j) << " ";
+    int counter = 0;
+    for (int x = 0; x < SUDOKU_SIZE; ++x ) {
+        for (int y= 0; y < SUDOKU_SIZE; ++y) {
+            // Exit if not in subgrid 1,5 or 9
+            if ((x<3&&y<3) || (x>=3 && x<6 && y>=3 && y<6) || (x>=6 && y>=6)) {
+                genome.gene(x, y, fixedCells[counter]);
+                counter++;
+            }
+        }
+    }
+    
+    if (PRINT_COUNTER){
+        //show genome
+        cout << "Initial Genome: " << endl;
+        for (int i = 0; i < SUDOKU_SIZE; i++) {
+            for (int j = 0; j < SUDOKU_SIZE; j++){
+                cout << genome.gene(i, j) << " ";
+            }
+            cout << endl;
         }
         cout << endl;
+        PRINT_COUNTER = false;
     }
-    cout << endl;
-    */
 }
 
 // Mutator
@@ -195,7 +225,7 @@ int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2
             int blockRow1 = std::uniform_int_distribution<int>(0, 2)(rng);
             int blockCol1 = std::uniform_int_distribution<int>(0, 2)(rng);
 
-            if (GAFlipCoin(0.5) && (blockRow1 != 0 || blockCol1 != 0) && (blockRow1 != 1 || blockCol1 != 1) && (blockRow1 != 2 || blockCol1 != 2))) {
+            if (GAFlipCoin(0.5) && (blockRow1 != 0 || blockCol1 != 0) && (blockRow1 != 1 || blockCol1 != 1) && (blockRow1 != 2 || blockCol1 != 2)) {
                 for (int i = 0; i < 3; ++i) {
                     for (int j = 0; j < 3; j++) {
                         child.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent2.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
@@ -295,7 +325,7 @@ int main() {
     GASimpleGA ga(genome);
     ga.populationSize(POPULATION_SIZE);
     ga.nGenerations(MAX_GENERATIONS);
-    ga.pMutation(0.05);
+    ga.pMutation(0.2);
     ga.pCrossover(0.9);
     ga.evolve();
 
@@ -321,4 +351,3 @@ int main() {
 
     return 0;
 }
-

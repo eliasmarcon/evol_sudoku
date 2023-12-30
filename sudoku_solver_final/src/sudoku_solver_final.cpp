@@ -3,7 +3,7 @@
 #include <ga/std_stream.h>
 #include <iostream>
 #include <random>
-#include <set>
+#include <algorithm>
 
 using namespace std;
 
@@ -21,34 +21,9 @@ std::vector<std::vector<int>> markedCells(SUDOKU_SIZE, std::vector<int>(SUDOKU_S
 // Global vector to store the Sudoku puzzle
 std::vector<std::vector<int>> sudoku(SUDOKU_SIZE, std::vector<int>(SUDOKU_SIZE, 0));
 
-
-/*
-int puzzle[SUDOKU_SIZE][SUDOKU_SIZE] = {
-    {1, 2, 5, 8, 9, 7, 4, 3, 6},
-    {3, 4, 8, 1, 2, 6, 9, 5, 7},
-    {6, 7, 9, 3, 5, 4, 8, 1, 2},
-    {7, 6, 4, 2, 3, 9, 1, 8, 5},
-    {5, 8, 3, 7, 4, 1, 2, 6, 9},
-    {9, 1, 2, 5, 6, 8, 7, 4, 3},
-    {8, 3, 6, 9, 1, 2, 5, 7, 4},
-    {2, 5, 1, 4, 7, 3, 6, 9, 8},
-    {4, 9, 7, 6, 8, 5, 3, 2, 1}
-};
-
-// Function to convert a 2D array to a vector of vectors
-std::vector<std::vector<int>> convertToVector(const int puzzle[SUDOKU_SIZE][SUDOKU_SIZE]) {
-    std::vector<std::vector<int>> sudoku(SUDOKU_SIZE, std::vector<int>(SUDOKU_SIZE, 0));
-
-    for (int i = 0; i < SUDOKU_SIZE; i++) {
-        for (int j = 0; j < SUDOKU_SIZE; j++) {
-            sudoku[i][j] = puzzle[i][j];
-        }
-    }
-
-    return sudoku;
-}
-
-*/
+/*===========================================================================================*/
+/*===================================== Helper Functions ====================================*/
+/*===========================================================================================*/
 
 // Load Sudoku into a 2D vector
 void loadSudoku(std::vector<std::vector<int>>& sudoku, int puzzleNumber) {
@@ -67,8 +42,6 @@ void loadSudoku(std::vector<std::vector<int>>& sudoku, int puzzleNumber) {
     while (std::getline(file, line) && puzzleNumber > 1) {
         --puzzleNumber;
     }
-
-    //std::cout << line << std::endl;
 
     // Read the puzzle line
     for (int i = 0; i < SUDOKU_SIZE; ++i) {
@@ -120,7 +93,6 @@ string validSudoku(const std::vector<std::vector<int>>& sudoku) {
                 return "false";
     }
 
-
     for (col = 0; col < 9; ++col) {
         memset(count, 0, 9 * sizeof(int));
         for (row = 0; row < 9; ++row) {
@@ -148,23 +120,137 @@ string validSudoku(const std::vector<std::vector<int>>& sudoku) {
     return "true";
 }
 
+void setPopulationSizeAndGenerations(int& NUMBERS_TO_REMOVE){
+
+    if (NUMBERS_TO_REMOVE <= 5){
+
+        /*
+        POPULATION_SIZE = 1000;
+        MAX_GENERATIONS = 10000;
+        */
+        POPULATION_SIZE = 10;
+        MAX_GENERATIONS = 100;
+
+    } else if (NUMBERS_TO_REMOVE > 5 && NUMBERS_TO_REMOVE <= 10){
+
+        POPULATION_SIZE = 2500;
+        MAX_GENERATIONS = 20000;
+
+    }else if (NUMBERS_TO_REMOVE > 10 && NUMBERS_TO_REMOVE <= 15){
+
+        POPULATION_SIZE = 5000;
+        MAX_GENERATIONS = 35000;
+
+    }else if (NUMBERS_TO_REMOVE > 15 && NUMBERS_TO_REMOVE <= 20){
+            
+        POPULATION_SIZE = 10000;
+        MAX_GENERATIONS = 50000;
+
+    }else{
+            
+        POPULATION_SIZE = 20000;
+        MAX_GENERATIONS = 1000000;
+    }
+}
+
+/*===========================================================================================*/
+/*============================ Solving/Checking Sudoku Functions ============================*/
+/*===========================================================================================*/
+
+bool isPresentInCol(int col, int num) {
+    for (int row = 0; row < SUDOKU_SIZE; row++)
+        if (sudoku[row][col] == num)
+            return true;
+    return false;
+}
+
+bool isPresentInRow(int row, int num) {
+    for (int col = 0; col < SUDOKU_SIZE; col++)
+        if (sudoku[row][col] == num)
+            return true;
+    return false;
+}
+
+bool isPresentInBox(int boxStartRow, int boxStartCol, int num) {
+    for (int row = 0; row < 3; row++)
+        for (int col = 0; col < 3; col++)
+            if (sudoku[row + boxStartRow][col + boxStartCol] == num)
+                return true;
+    return false;
+}
+
+bool findEmptyPlace(int &row, int &col) {
+    for (row = 0; row < SUDOKU_SIZE; row++)
+        for (col = 0; col < SUDOKU_SIZE; col++)
+            if (sudoku[row][col] == 0)
+                return true;
+    return false;
+}
+
+bool isValidPlace(int row, int col, int num) {
+    return !isPresentInRow(row, num) && !isPresentInCol(col, num) && !isPresentInBox(row - row % 3, col - col % 3, num);
+}
+
+bool solveSudoku(int &solutionsCount, int maxSolutions) {
+    printSudoku(sudoku, "\nSudoku Field check");
+    int row, col;
+    if (!findEmptyPlace(row, col)) {
+        solutionsCount++;
+        if (solutionsCount >= maxSolutions)
+            return true;
+        return false;
+    }
+
+    for (int num = 1; num <= 9; num++) {
+        if (isValidPlace(row, col, num)) {
+            sudoku[row][col] = num;
+            if (solveSudoku(solutionsCount, maxSolutions))
+                return true;
+            sudoku[row][col] = 0;
+        }
+    }
+    return false;
+}
+
+bool hasUniqueSolution() {
+    int solutionsCount = 0;
+    int maxSolutions = 2; // Set the desired number of solutions
+
+    solveSudoku(solutionsCount, maxSolutions);
+
+    if (solutionsCount == 1){
+        cout << "Unique solution found!" << endl;
+        return true;
+    }
+    else if (solutionsCount > 1){
+        cout << "Multiple solutions found!" << endl;
+        return false;
+    }
+    else{
+        cout << "No solution found" << endl;
+        return false;
+    }
+}
+
+// Function to create a deep copy of a 2D vector
+template<typename T>
+std::vector<std::vector<T>> copyVector(const std::vector<std::vector<T>>& source) {
+    std::vector<std::vector<T>> destination;
+    for (const auto& row : source) {
+        destination.push_back(row);
+    }
+    return destination;
+}
+
+/*===========================================================================================*/
+/*======================================= GA Functions ======================================*/
+/*===========================================================================================*/
 
 // Objective function for Sudoku
 float objective(GAGenome& g) {
 
     GA2DArrayGenome<int>& genome = (GA2DArrayGenome<int>&)g;
-    int fitness = SUDOKU_SIZE * SUDOKU_SIZE * SUDOKU_SIZE * SUDOKU_SIZE; //int fitness = (CHESSBOARD_SIZE * (CHESSBOARD_SIZE - 1)) / 2;
-
-    /*
-    // Check for default value
-    for (int i = 0; i < SUDOKU_SIZE; i++) {
-        for (int j = 0; j < SUDOKU_SIZE; j++) {
-            if (genome.gene(i, j) == 0) {
-                fitness--;
-            }
-        }
-    }
-    */
+    int fitness = SUDOKU_SIZE * SUDOKU_SIZE * SUDOKU_SIZE * SUDOKU_SIZE;
 
     // Check each row for duplicates
     for (int i = 0; i < SUDOKU_SIZE; i++) {
@@ -214,30 +300,63 @@ float objective(GAGenome& g) {
 
 // Define the initializer function
 void initializer(GAGenome& g) {
-    
-    //std::vector<std::vector<int>> sudoku = convertToVector(puzzle);
-
-    /*
-    string valid = validSudoku(sudoku);
-    cout << "Answer to valid Sudoku: " << valid << endl;
-    */
-
-    // remove random numbers
-    //std::mt19937 rng(SEED);  // Mersenne Twister random number generator
     std::mt19937 rng(std::random_device{}());
     std::uniform_int_distribution<int> dist(0, SUDOKU_SIZE - 1);
 
-    if (REPLACE_COUNTER < 1)
-    {
+
+    if (REPLACE_COUNTER < 1) {
+
+        // Create deep copies
+        auto initialSudoku = copyVector(sudoku);
+        auto initialMarkedCells = copyVector(markedCells);
+        
         for (int k = 0; k < NUMBERS_TO_REMOVE; k++) {
             int i = dist(rng);
             int j = dist(rng);
-            
+
             if (markedCells[i][j] == 0) { // cell not marked
-                sudoku[i][j] = (std::rand() % 9) + 1; // initialize field value with a random number 1-9
+                sudoku[i][j] = 0;
                 markedCells[i][j] = 1;
             } else {
                 k--;  // Try again if the cell is already empty
+            }
+        }
+
+        printSudoku(sudoku, "\nInitial Sudoku Field with 0");
+
+        while (!hasUniqueSolution()) {
+            // Adjust numbers to remove and try again
+            NUMBERS_TO_REMOVE--;
+            std::cout << "Adjusting numbers to remove: " << NUMBERS_TO_REMOVE << std::endl;
+
+            if (NUMBERS_TO_REMOVE == 0) {
+                std::cerr << "No solution found for the given Sudoku puzzle.\n";
+                exit(1);
+            }
+
+            sudoku = initialSudoku;
+            markedCells = initialMarkedCells;
+
+            // Repeat the random number removal process
+            for (int k = 0; k < NUMBERS_TO_REMOVE; k++) {
+                int i = dist(rng);
+                int j = dist(rng);
+
+                if (markedCells[i][j] == 0) { // cell not marked
+                    sudoku[i][j] = 0;
+                    markedCells[i][j] = 1;
+                } else {
+                    k--;  // Try again if the cell is already empty
+                }
+            }
+        }
+
+        // set the initial sudoku with marked values to a random number
+        for (int i = 0; i < SUDOKU_SIZE; i++) {
+            for (int j = 0; j < SUDOKU_SIZE; j++) {
+                if(markedCells[i][j] == 1){
+                    sudoku[i][j] = (std::rand() % 9) + 1; // initialize field value with a random number 1-9
+                }
             }
         }
 
@@ -266,7 +385,6 @@ void initializer(GAGenome& g) {
 
     cout << endl;
     */
-
 
     // Initializer part
     GA2DArrayGenome<int>& genome = (GA2DArrayGenome<int>&)g;
@@ -309,11 +427,6 @@ int mutator(GAGenome& g, float p) {
 
     return nMutations;
 }
-/*
-bool getRandomBool() {
-    return rand() % 2 == 0;
-}
-*/
 
 // Define the crossover function
 int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2) {
@@ -356,35 +469,9 @@ int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2
     }
 }
 
-void setPopulationSizeAndGenerations(int& NUMBERS_TO_REMOVE){
-
-    if (NUMBERS_TO_REMOVE <= 5){
-
-        POPULATION_SIZE = 1000;
-        MAX_GENERATIONS = 10000;
-
-    } else if (NUMBERS_TO_REMOVE > 5 && NUMBERS_TO_REMOVE <= 10){
-
-        POPULATION_SIZE = 2500;
-        MAX_GENERATIONS = 15000;
-
-    }else if (NUMBERS_TO_REMOVE > 10 && NUMBERS_TO_REMOVE <= 15){
-
-        POPULATION_SIZE = 5000;
-        MAX_GENERATIONS = 30000;
-
-    }else if (NUMBERS_TO_REMOVE > 15 && NUMBERS_TO_REMOVE <= 20){
-            
-        POPULATION_SIZE = 10000;
-        MAX_GENERATIONS = 50000;
-
-    }else{
-            
-        POPULATION_SIZE = 20000;
-        MAX_GENERATIONS = 1000000;
-    }
-}
-
+/*===========================================================================================*/
+/*====================================== Main Function ======================================*/
+/*===========================================================================================*/
 int main(int argc, char* argv[]) {
 
     int sudoku_number = atoi(argv[1]);
@@ -396,12 +483,6 @@ int main(int argc, char* argv[]) {
     cout << "Numbers to remove: " << NUMBERS_TO_REMOVE << endl;
     cout << "Population size: " << POPULATION_SIZE << endl;
     cout << "Max generations: " << MAX_GENERATIONS << endl;
-
-    // Define the Sudoku puzzle
-    loadSudoku(sudoku, sudoku_number);
-    string valid = validSudoku(sudoku);
-    cout << "\nAnswer to initial loaded Sudoku valid? --> " << valid << endl;
-    //printSudoku(sudoku);
 
     // Create the initial population
     GA2DArrayGenome<int> genome(SUDOKU_SIZE, SUDOKU_SIZE, objective);
