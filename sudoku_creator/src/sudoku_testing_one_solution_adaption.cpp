@@ -6,12 +6,15 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <numeric>
+#include <random>
 
 using namespace std;
 
 const int SUDOKU_SIZE = 9;
 const int POPULATION_SIZE = 2000;
 const int MAX_GENERATIONS = 25000;
+bool PRINT_COUNTER = true;
 
 // Objective function for Sudoku
 float objective(GAGenome& g) {
@@ -65,24 +68,39 @@ float objective(GAGenome& g) {
     return (float)fitness;
 }
 
-//  Initializer
+// Initializer
 void initializer(GAGenome& g) {
     GA2DArrayGenome<int>& genome = (GA2DArrayGenome<int>&)g;
 
-    // Create an array with values 1 to 9
-    int values[SUDOKU_SIZE];
-    for (int i = 0; i < SUDOKU_SIZE; ++i) {
-        values[i] = i + 1;
+    vector<int> nums;
+    for (int i = 1; i <= SUDOKU_SIZE; i++) {
+        nums.push_back(i);
     }
 
-    // Shuffle the values array
-    std::random_shuffle(values, values + SUDOKU_SIZE);
+    // Shuffle the numbers to have different candidates
+    std::default_random_engine rng(std::random_device{}());
+    std::shuffle(nums.begin(), nums.end(), rng);
 
-    // Fill the grid with shuffled values
-    for (int i = 0; i < SUDOKU_SIZE; ++i) {
-        for (int j = 0; j < SUDOKU_SIZE; ++j) {
-            genome.gene(i, j, values[(i + j) % SUDOKU_SIZE]);
+    
+    for (int i = 0; i < SUDOKU_SIZE; i++) {
+        std::shuffle(nums.begin(), nums.end(), rng);
+
+        for (int j = 0; j < SUDOKU_SIZE; j++) {
+            genome.gene(i, j, nums[j]);
         }
+    }
+    
+    if (PRINT_COUNTER){
+        //show genome
+        cout << "Initial Genome: " << endl;
+        for (int i = 0; i < SUDOKU_SIZE; i++) {
+            for (int j = 0; j < SUDOKU_SIZE; j++){
+                cout << genome.gene(i, j) << " ";
+            }
+            cout << endl;
+        }
+        cout << endl;
+        PRINT_COUNTER = false;
     }
 }
 
@@ -91,19 +109,24 @@ int mutator(GAGenome& g, float p) {
     GA2DArrayGenome<int>& genome = (GA2DArrayGenome<int>&)g;
 
     int nMutations = 0;
-    for (int i = 0; i < SUDOKU_SIZE; i++) {
-        for (int j = 0; j < SUDOKU_SIZE; j++) {
-            if (GAFlipCoin(p)) {
-                int x = rand() % SUDOKU_SIZE;
-                int y = rand() % SUDOKU_SIZE;
+    // Switch a random amount of 3x3 subgrids
+    std::default_random_engine rng(std::random_device{}());
+    int mutationsToPerform = std::uniform_int_distribution<int>(1, 81)(rng);
+    
+    for (int mutationCount = 0; mutationCount < mutationsToPerform; mutationCount++) {
+        
+        std::uniform_int_distribution<int> positionDistribution(0, SUDOKU_SIZE - 1);
+        
+        int i1 = positionDistribution(rng);
+        int j1 = positionDistribution(rng);
+        int i2 = positionDistribution(rng);
+        int j2 = positionDistribution(rng);
 
-                int temp = genome.gene(i, j);
-                genome.gene(i, j, genome.gene(x, y));
-                genome.gene(x, y, temp);
+        int temp = genome.gene(i1, j1);
+        genome.gene(i1, j1, genome.gene(i2, j2));
+        genome.gene(i2, j2, temp);
 
-                nMutations++;
-            }
-        }
+        nMutations++;
     }
 
     return nMutations;
@@ -118,8 +141,12 @@ int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2
         GA2DArrayGenome<int>& child1 = (GA2DArrayGenome<int>&)*c1;
         GA2DArrayGenome<int>& child2 = (GA2DArrayGenome<int>&)*c2;
 
-        int cutRow = rand() % SUDOKU_SIZE;
-        int cutCol = rand() % SUDOKU_SIZE;
+        std::default_random_engine rng(std::random_device{}());
+        std::uniform_int_distribution<int> cutDistributionRow(0, SUDOKU_SIZE - 1);
+        std::uniform_int_distribution<int> cutDistributionCol(0, SUDOKU_SIZE - 1);
+
+        int cutRow = cutDistributionRow(rng);
+        int cutCol = cutDistributionCol(rng);
 
         for (int i = 0; i < SUDOKU_SIZE; i++) {
             for (int j = 0; j < SUDOKU_SIZE; j++) {
@@ -136,8 +163,13 @@ int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2
         return 2;
     } else if (c1) {
         GA2DArrayGenome<int>& child = (GA2DArrayGenome<int>&)*c1;
-        int cutRow = rand() % SUDOKU_SIZE;
-        int cutCol = rand() % SUDOKU_SIZE;
+        
+        std::default_random_engine rng(std::random_device{}());
+        std::uniform_int_distribution<int> cutDistributionRow(0, SUDOKU_SIZE - 1);
+        std::uniform_int_distribution<int> cutDistributionCol(0, SUDOKU_SIZE - 1);
+
+        int cutRow = cutDistributionRow(rng);
+        int cutCol = cutDistributionCol(rng);
 
         for (int i = 0; i < SUDOKU_SIZE; i++) {
             for (int j = 0; j < SUDOKU_SIZE; j++) {
@@ -231,8 +263,21 @@ int main() {
     ga.populationSize(POPULATION_SIZE);
     ga.nGenerations(MAX_GENERATIONS);
     ga.pMutation(0.05); //0.05
-    ga.pCrossover(0.7); //0.9
-    ga.evolve();
+    ga.pCrossover(0.9); //0.9
+    
+    // Evolve and output information for each generation
+    for (int generation = 0; generation < MAX_GENERATIONS; ++generation) {
+        
+        ga.evolve();
+
+        // Access statistics
+        GAStatistics stats = ga.statistics();
+
+        if (generation % 100 == 0) {
+            cout << "Generation " << generation
+                << " Best Fitness: " << stats.bestIndividual().score() << endl;
+        }
+    }
 
     const GA2DArrayGenome<int>& bestGenome = (GA2DArrayGenome<int>&)ga.statistics().bestIndividual();
     

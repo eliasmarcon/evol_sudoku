@@ -1,6 +1,7 @@
 #include <ga/GA2DArrayGenome.h>
 #include <ga/GASimpleGA.h>
 #include <ga/std_stream.h>
+#include <ga/GAStatistics.h>
 #include <ctime>
 #include <cstring>
 #include <cstdlib>
@@ -9,12 +10,13 @@
 #include <algorithm>
 #include <numeric>
 #include <random>
+#include <chrono>
 
 using namespace std;
 
 const int SUDOKU_SIZE = 9;
-const int POPULATION_SIZE = 8000;
-const int MAX_GENERATIONS = 30000;
+const int POPULATION_SIZE = 4000; //15000
+const int MAX_GENERATIONS = 25000; //45000
 
 bool PRINT_COUNTER = true;
 //123456789/123456789/123456789
@@ -47,6 +49,7 @@ float objective(GAGenome& g) {
             }
         }
     }
+    
     /*
     // Check each 3x3 subgrid for duplicates
     for (int blockRow = 0; blockRow < 3; blockRow++) {
@@ -69,8 +72,10 @@ float objective(GAGenome& g) {
         }
     }
     */
+    
     return (float)fitness;
 }
+
 
 // Initializer
 void initializer(GAGenome& g) {
@@ -125,14 +130,20 @@ void initializer(GAGenome& g) {
     
     if (PRINT_COUNTER){
         //show genome
-        cout << "Initial Genome: " << endl;
+        std::cout << "Initial Genome: " << std::endl;
         for (int i = 0; i < SUDOKU_SIZE; i++) {
-            for (int j = 0; j < SUDOKU_SIZE; j++){
-                cout << genome.gene(i, j) << " ";
+            if (i > 0 && i % 3 == 0) {
+                std::cout << "---------------------" << std::endl;
             }
-            cout << endl;
+            for (int j = 0; j < SUDOKU_SIZE; j++){
+                if (j > 0 && j % 3 == 0) {
+                    std::cout << "| ";
+                }
+                std::cout << genome.gene(i, j) << " ";
+            }
+            std::cout << std::endl;
         }
-        cout << endl;
+        std::cout << std::endl;
         PRINT_COUNTER = false;
     }
 }
@@ -145,26 +156,36 @@ int mutator(GAGenome& g, float p) {
 
     std::default_random_engine rng(std::random_device{}());
     
-    // Shuffle all 3x3 subgrids randomly except the first 3x3 subgrid the fifth and the last subgrid, including a coin flip to decide whether to shuffle or not
+    // Shuffle a random number of 3x3 subgrids randomly except the first, fifth, or last subgrid, including a coin flip to decide whether to shuffle or not
     for (int blockRow = 0; blockRow < 3; blockRow++) {
         for (int blockCol = 0; blockCol < 3; blockCol++) {
             // Check if it's the first, fifth, or last subgrid
             bool shouldShuffle = GAFlipCoin(p) && (blockRow != 0 || blockCol != 0) && (blockRow != 1 || blockCol != 1) && (blockRow != 2 || blockCol != 2);
 
             if (shouldShuffle) {
-                std::vector<int> numbers;
+                // Get the indices of the selected subgrid
+                std::vector<std::pair<int, int>> indices;
                 for (int i = 0; i < 3; ++i) {
                     for (int j = 0; j < 3; j++) {
-                        numbers.push_back(genome.gene(blockRow * 3 + i, blockCol * 3 + j));
+                        indices.push_back(std::make_pair(blockRow * 3 + i, blockCol * 3 + j));
                     }
                 }
 
-                std::shuffle(numbers.begin(), numbers.end(), rng);
+                // Use a random number between 1 and 9 to determine how many numbers to shuffle in the subgrid
+                int shuffleNumber = std::uniform_int_distribution<int>(1, 9)(rng);
+                std::shuffle(indices.begin(), indices.end(), rng);
 
-                for (int i = 0; i < 3; ++i) {
-                    for (int j = 0; j < 3; j++) {
-                        genome.gene(blockRow * 3 + i, blockCol * 3 + j, numbers[i * 3 + j]);
-                    }
+                // Switch places of the selected numbers
+                for (int i = 0; i < shuffleNumber; ++i) {
+                    int x = indices[i].first;
+                    int y = indices[i].second;
+
+                    int newX = indices[(i + 1) % shuffleNumber].first;
+                    int newY = indices[(i + 1) % shuffleNumber].second;
+
+                    int temp = genome.gene(x, y);
+                    genome.gene(x, y, genome.gene(newX, newY));
+                    genome.gene(newX, newY, temp);
                 }
                 nMutations++;
             }
@@ -178,38 +199,45 @@ int mutator(GAGenome& g, float p) {
 int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2) {
     GA2DArrayGenome<int>& parent1 = (GA2DArrayGenome<int>&)p1;
     GA2DArrayGenome<int>& parent2 = (GA2DArrayGenome<int>&)p2;
+    
+    //backup (blockRow1 != 0 || blockCol1 != 0) && (blockRow1 != 1 || blockCol1 != 1) && (blockRow1 != 2 || blockCol1 != 2)
+    // Define the subgrids to be copied
+    std::vector<std::pair<int, int>> subgridsAboveDiagonal = {{0, 1}, {0, 2}, {1, 2}};
+    std::vector<std::pair<int, int>> subgridsUnderDiagonal = {{1, 0}, {2, 0}, {2, 1}};
 
     if (c1 && c2) {
         GA2DArrayGenome<int>& child1 = (GA2DArrayGenome<int>&)*c1;
         GA2DArrayGenome<int>& child2 = (GA2DArrayGenome<int>&)*c2;
 
-        // Switch a random amount of 3x3 subgrids
-        std::default_random_engine rng(std::random_device{}());
-        int nSwitches = std::uniform_int_distribution<int>(1, 6)(rng);
-
-        for (int i = 0; i < nSwitches; ++i) {
-            
-            int blockRow1 = std::uniform_int_distribution<int>(0, 2)(rng);
-            int blockCol1 = std::uniform_int_distribution<int>(0, 2)(rng);
-
-            if (GAFlipCoin(0.5) && (blockRow1 != 0 || blockCol1 != 0) && (blockRow1 != 1 || blockCol1 != 1) && (blockRow1 != 2 || blockCol1 != 2)) {
-                for (int i = 0; i < 3; ++i) {
-                    for (int j = 0; j < 3; j++) {
-                        child1.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent2.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
-                        child2.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent1.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
-                    }
+        for (const auto& subgrid : subgridsAboveDiagonal) {
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    child1.gene(subgrid.first * 3 + i, subgrid.second * 3 + j, parent1.gene(subgrid.first * 3 + i, subgrid.second * 3 + j));
                 }
             }
-            else if ((blockRow1 != 0 || blockCol1 != 0) && (blockRow1 != 1 || blockCol1 != 1) && (blockRow1 != 2 || blockCol1 != 2)){
-                for (int i = 0; i < 3; ++i) {
-                    for (int j = 0; j < 3; j++) {
-                        child1.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent1.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
-                        child2.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent2.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
-                    }
+        }
+
+        for (const auto& subgrid : subgridsUnderDiagonal) {
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    child1.gene(subgrid.first * 3 + i, subgrid.second * 3 + j, parent2.gene(subgrid.first * 3 + i, subgrid.second * 3 + j));
                 }
             }
-            else {
-                i--;
+        }
+
+        for (const auto& subgrid : subgridsAboveDiagonal) {
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    child2.gene(subgrid.first * 3 + i, subgrid.second * 3 + j, parent2.gene(subgrid.first * 3 + i, subgrid.second * 3 + j));
+                }
+            }
+        }
+
+        for (const auto& subgrid : subgridsUnderDiagonal) {
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    child2.gene(subgrid.first * 3 + i, subgrid.second * 3 + j, parent1.gene(subgrid.first * 3 + i, subgrid.second * 3 + j));
+                }
             }
         }
 
@@ -217,30 +245,38 @@ int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2
     } else if (c1) {
         GA2DArrayGenome<int>& child = (GA2DArrayGenome<int>&)*c1;
         
-        // Switch a random amount of 3x3 subgrids
-        std::default_random_engine rng(std::random_device{}());
-        int nSwitches = std::uniform_int_distribution<int>(1, 6)(rng);
+        if (GAFlipCoin(0.5)){
 
-        for (int i = 0; i < nSwitches; ++i) {
-            int blockRow1 = std::uniform_int_distribution<int>(0, 2)(rng);
-            int blockCol1 = std::uniform_int_distribution<int>(0, 2)(rng);
-
-            if (GAFlipCoin(0.5) && (blockRow1 != 0 || blockCol1 != 0) && (blockRow1 != 1 || blockCol1 != 1) && (blockRow1 != 2 || blockCol1 != 2)) {
+            for (const auto& subgrid : subgridsAboveDiagonal) {
                 for (int i = 0; i < 3; ++i) {
-                    for (int j = 0; j < 3; j++) {
-                        child.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent2.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
+                    for (int j = 0; j < 3; ++j) {
+                        child.gene(subgrid.first * 3 + i, subgrid.second * 3 + j, parent1.gene(subgrid.first * 3 + i, subgrid.second * 3 + j));
                     }
                 }
             }
-            else if((blockRow1 != 0 || blockCol1 != 0) && (blockRow1 != 1 || blockCol1 != 1) && (blockRow1 != 2 || blockCol1 != 2)){
+
+            for (const auto& subgrid : subgridsUnderDiagonal) {
                 for (int i = 0; i < 3; ++i) {
-                    for (int j = 0; j < 3; j++) {
-                        child.gene(blockRow1 * 3 + i, blockCol1 * 3 + j, parent1.gene(blockRow1 * 3 + i, blockCol1 * 3 + j));
+                    for (int j = 0; j < 3; ++j) {
+                        child.gene(subgrid.first * 3 + i, subgrid.second * 3 + j, parent2.gene(subgrid.first * 3 + i, subgrid.second * 3 + j));
                     }
                 }
             }
-            else{
-                i--;
+        }else{
+            for (const auto& subgrid : subgridsAboveDiagonal) {
+                for (int i = 0; i < 3; ++i) {
+                    for (int j = 0; j < 3; ++j) {
+                        child.gene(subgrid.first * 3 + i, subgrid.second * 3 + j, parent2.gene(subgrid.first * 3 + i, subgrid.second * 3 + j));
+                    }
+                }
+            }
+
+            for (const auto& subgrid : subgridsUnderDiagonal) {
+                for (int i = 0; i < 3; ++i) {
+                    for (int j = 0; j < 3; ++j) {
+                        child.gene(subgrid.first * 3 + i, subgrid.second * 3 + j, parent1.gene(subgrid.first * 3 + i, subgrid.second * 3 + j));
+                    }
+                }
             }
         }
         
@@ -317,6 +353,12 @@ int main() {
     // Initialize a Sudoku field with zeros
     std::vector<std::vector<int>> sudoku(SUDOKU_SIZE, std::vector<int>(SUDOKU_SIZE, 0));
 
+    // max fitness score
+    float maxFitnessScore = 0;
+
+    // Start measuring time
+    auto start_time = chrono::high_resolution_clock::now();
+
     GA2DArrayGenome<int> genome(SUDOKU_SIZE, SUDOKU_SIZE, objective);
     genome.initializer(initializer);
     genome.mutator(mutator);
@@ -327,27 +369,62 @@ int main() {
     ga.nGenerations(MAX_GENERATIONS);
     ga.pMutation(0.2);
     ga.pCrossover(0.9);
-    ga.evolve();
+    
+    // Evolve and output information for each generation
+    for (int generation = 0; generation < MAX_GENERATIONS; ++generation) {
+        
+        ga.evolve();
 
+        // Access statistics
+        GAStatistics stats = ga.statistics();
+
+        if (generation % 2000 == 0){
+            // Output information for each generation
+            std::cout << "Generation " << generation
+                << " Best Fitness: " << stats.bestIndividual().score() << std::endl;
+        }
+
+        // Update maximum fitness score
+        maxFitnessScore = max(maxFitnessScore, stats.bestIndividual().score());
+    }
+    
     const GA2DArrayGenome<int>& bestGenome = (GA2DArrayGenome<int>&)ga.statistics().bestIndividual();
     
-    cout << "Best solution found: " << endl;
+    //cout << "Best solution found: " << endl;
     for (int i = 0; i < SUDOKU_SIZE; i++) {
         for (int j = 0; j < SUDOKU_SIZE; j++){
-            cout << bestGenome.gene(i, j) << " ";
+            //cout << bestGenome.gene(i, j) << " ";
             sudoku[i][j] = bestGenome.gene(i, j);
         }
-        cout << endl;
+        //cout << endl;
     }
-    cout << endl;
+    //cout << endl;
 
-    cout << "Sudoku Field" << endl;
+    // Stop measuring time
+    auto end_time = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time);
+
+    // Calculate hours, minutes, and seconds
+    auto hours = chrono::duration_cast<chrono::hours>(duration);
+    duration -= hours;
+    auto minutes = chrono::duration_cast<chrono::minutes>(duration);
+    duration -= minutes;
+    auto seconds = chrono::duration_cast<chrono::seconds>(duration);
+    duration -= seconds;
+    auto milliseconds = chrono::duration_cast<chrono::milliseconds>(duration);
+
+    // Print elapsed time in hours, minutes, seconds, and milliseconds
+    cout << "\nTime taken for evolution: " << hours.count() << " hours, "
+        << minutes.count() << " minutes, "
+        << seconds.count() << " seconds, and "
+        << milliseconds.count() << " milliseconds\n" << endl;
+
+    cout << "Best found Sudoku Field" << endl;
     printSudoku(sudoku);
     cout << endl;
 
     string valid = validSudoku(sudoku);
-    cout << "Answer to valid Sudoku: " << valid << endl;    
-
+    cout << "Answer to valid Sudoku --> " << valid << endl;    
 
     return 0;
 }
