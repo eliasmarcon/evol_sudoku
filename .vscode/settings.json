@@ -48,6 +48,7 @@
         "typeinfo": "cpp",
         "set": "cpp",
         "chrono": "cpp",
-        "ratio": "cpp"
+        "ratio": "cpp",
+        "unordered_set": "cpp"
     }
 }

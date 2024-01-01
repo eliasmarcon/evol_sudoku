@@ -11,16 +11,23 @@
 #include <numeric>
 #include <random>
 #include <chrono>
+#include <unordered_set>
 
 using namespace std;
 
 const int SUDOKU_SIZE = 9;
-const int POPULATION_SIZE = 4000; //15000
-const int MAX_GENERATIONS = 25000; //45000
+const int POPULATION_SIZE = 500; //15000
+const int MAX_GENERATIONS = 2000; //45000
 
 bool PRINT_COUNTER = true;
+int REPLACE_COUNTER = 0;
+
+// Global vector to store whether each cell is marked
+std::vector<std::vector<int>> markedCells(SUDOKU_SIZE, std::vector<int>(SUDOKU_SIZE, 0));
+
 //123456789/123456789/123456789
 std::vector<int> fixedCells = std::vector<int>(SUDOKU_SIZE * 3, 0);
+
 
 // Objective function for Sudoku
 float objective(GAGenome& g) {
@@ -89,9 +96,6 @@ void initializer(GAGenome& g) {
 
     // Seed for the random number generator
     std::default_random_engine rng(std::random_device{}());
-
-    // Shuffle the numbers randomly
-    std::shuffle(numbers.begin(), numbers.end(), rng);
 
     if (fixedCells[0] == 0){
         int counter = 0;
@@ -353,9 +357,6 @@ int main() {
     // Initialize a Sudoku field with zeros
     std::vector<std::vector<int>> sudoku(SUDOKU_SIZE, std::vector<int>(SUDOKU_SIZE, 0));
 
-    // max fitness score
-    float maxFitnessScore = 0;
-
     // Start measuring time
     auto start_time = chrono::high_resolution_clock::now();
 
@@ -367,8 +368,10 @@ int main() {
     GASimpleGA ga(genome);
     ga.populationSize(POPULATION_SIZE);
     ga.nGenerations(MAX_GENERATIONS);
-    ga.pMutation(0.2);
+    ga.pMutation(0.3);
     ga.pCrossover(0.9);
+
+    //ga.evolve();
     
     // Evolve and output information for each generation
     for (int generation = 0; generation < MAX_GENERATIONS; ++generation) {
@@ -378,14 +381,11 @@ int main() {
         // Access statistics
         GAStatistics stats = ga.statistics();
 
-        if (generation % 2000 == 0){
+        if (generation % 100 == 0){
             // Output information for each generation
             std::cout << "Generation " << generation
                 << " Best Fitness: " << stats.bestIndividual().score() << std::endl;
         }
-
-        // Update maximum fitness score
-        maxFitnessScore = max(maxFitnessScore, stats.bestIndividual().score());
     }
     
     const GA2DArrayGenome<int>& bestGenome = (GA2DArrayGenome<int>&)ga.statistics().bestIndividual();
