@@ -16,8 +16,8 @@
 using namespace std;
 
 const int SUDOKU_SIZE = 9;
-const int POPULATION_SIZE = 2000; //15000
-const int MAX_GENERATIONS = 25000; //45000
+const int POPULATION_SIZE = 500; //15000
+const int MAX_GENERATIONS = 45000; //45000
 
 bool PRINT_COUNTER = true;
 int REPLACE_COUNTER = 0;
