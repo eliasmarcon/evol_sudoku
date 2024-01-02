@@ -16,8 +16,8 @@
 using namespace std;
 
 const int SUDOKU_SIZE = 9;
-const int POPULATION_SIZE = 500; //15000
-const int MAX_GENERATIONS = 2000; //45000
+const int POPULATION_SIZE = 2000; //15000
+const int MAX_GENERATIONS = 25000; //45000
 
 bool PRINT_COUNTER = true;
 int REPLACE_COUNTER = 0;
@@ -350,6 +350,147 @@ string validSudoku(const std::vector<std::vector<int>>& sudoku) {
     return "true";
 }
 
+#include <ga/GASelector.h>
+class BestTenOutOfHundredSelector : public GASelectionScheme {
+    public:
+        GADefineIdentity("BestTenOutOfHundredSelector", 0);
+
+        BestTenOutOfHundredSelector() : GASelectionScheme() {}
+        virtual ~BestTenOutOfHundredSelector() {}
+
+        virtual GASelectionScheme* clone() const {
+            return new BestTenOutOfHundredSelector;
+        }
+
+        virtual void assign(GAPopulation& p) {
+            GASelectionScheme::assign(p);
+        }
+
+        virtual void update() {
+            GASelectionScheme::update();
+        }
+
+        virtual GAGenome& select() const {
+            const int numCandidates = POPULATION_SIZE * 0.5;  // Change the number of candidates
+            const int numSelected = POPULATION_SIZE * 0.3;     // Change the number of selected individuals
+
+            int idx[numCandidates];
+            GAGenome* candidates[numCandidates];
+
+            for (int i = 0; i < numCandidates; ++i) {
+                idx[i] = GARandomInt(0, pop->size() - 1);
+                candidates[i] = &(pop->individual(idx[i]));
+            }
+
+            // Sort candidates based on their scores in descending order
+            std::sort(candidates, candidates + numCandidates,
+                    [](const GAGenome* a, const GAGenome* b) {
+                        return a->score() > b->score();
+                    });
+
+            // Return a reference to the 10th best individual
+            return *candidates[numSelected - 1];
+        }
+};
+
+// int main() {
+    
+//     srand(static_cast<unsigned int>(time(nullptr)));
+
+//     // Initialize a Sudoku field with zeros
+//     std::vector<std::vector<int>> sudoku(SUDOKU_SIZE, std::vector<int>(SUDOKU_SIZE, 0));
+
+//     // Start measuring time
+//     auto start_time = chrono::high_resolution_clock::now();
+
+//     GA2DArrayGenome<int> genome(SUDOKU_SIZE, SUDOKU_SIZE, objective);
+//     genome.initializer(initializer);
+//     genome.mutator(mutator);
+//     genome.crossover(crossover);
+
+//     GASimpleGA ga(genome);
+//     ga.populationSize(POPULATION_SIZE);
+//     ga.nGenerations(MAX_GENERATIONS);
+//     ga.pMutation(0.3);
+//     ga.pCrossover(0.9);
+
+//     // ga.evolve();
+
+//     GA2DArrayGenome<int> bestGenome = genome;
+//     int initialFitness = 0;
+//     int bestFitness = SUDOKU_SIZE * SUDOKU_SIZE * SUDOKU_SIZE * SUDOKU_SIZE;
+
+//     // Evolve and output information for each generation
+//     for (int generation = 1; generation <= MAX_GENERATIONS; ++generation) {
+        
+//         ga.evolve();
+
+//         // Access statistics
+//         GAStatistics stats = ga.statistics();
+
+//         if (generation % 100 == 0) {
+//             // Output information for each generation
+//             std::cout << "Prozent done: " << std::ceil(static_cast<double>(generation) / MAX_GENERATIONS * 100) << "% | Generation " << generation
+//                     << " | Best Fitness: " << stats.bestIndividual().score() << std::endl;
+//         }
+
+//         // Check if the current best individual is better than the overall best
+//         if (stats.bestIndividual().score() > initialFitness) {
+            
+//             initialFitness = stats.bestIndividual().score();
+//             bestGenome = (GA2DArrayGenome<int>&)stats.bestIndividual();
+            
+//             if (initialFitness == bestFitness){
+//                 break;
+//             }
+//         }
+
+//     }
+    
+//     // const GA2DArrayGenome<int>& bestGenome = (GA2DArrayGenome<int>&)ga.statistics().bestIndividual();
+//     // float finalBestFitness = ga.statistics().bestIndividual().score();
+//     std::cout << "\nFinal Best Fitness: " << initialFitness << std::endl << std::endl;
+
+//     //cout << "Best solution found: " << endl;
+//     for (int i = 0; i < SUDOKU_SIZE; i++) {
+//         for (int j = 0; j < SUDOKU_SIZE; j++){
+//             //cout << bestGenome.gene(i, j) << " ";
+//             sudoku[i][j] = bestGenome.gene(i, j);
+//         }
+//         //cout << endl;
+//     }
+//     //cout << endl;
+
+//     // Stop measuring time
+//     auto end_time = chrono::high_resolution_clock::now();
+//     auto duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time);
+
+//     // Calculate hours, minutes, and seconds
+//     auto hours = chrono::duration_cast<chrono::hours>(duration);
+//     duration -= hours;
+//     auto minutes = chrono::duration_cast<chrono::minutes>(duration);
+//     duration -= minutes;
+//     auto seconds = chrono::duration_cast<chrono::seconds>(duration);
+//     duration -= seconds;
+//     auto milliseconds = chrono::duration_cast<chrono::milliseconds>(duration);
+
+//     // Print elapsed time in hours, minutes, seconds, and milliseconds
+//     cout << "\nTime taken for evolution: " << hours.count() << " hours, "
+//         << minutes.count() << " minutes, "
+//         << seconds.count() << " seconds, and "
+//         << milliseconds.count() << " milliseconds\n" << endl;
+
+//     cout << "Best found Sudoku Field" << endl;
+//     printSudoku(sudoku);
+//     cout << endl;
+
+//     string valid = validSudoku(sudoku);
+//     cout << "Answer to valid Sudoku --> " << valid << endl;    
+
+//     return 0;
+// }
+
+
 int main() {
     
     srand(static_cast<unsigned int>(time(nullptr)));
@@ -367,38 +508,57 @@ int main() {
 
     GASimpleGA ga(genome);
     ga.populationSize(POPULATION_SIZE);
-    ga.nGenerations(MAX_GENERATIONS);
-    ga.pMutation(0.3);
+    ga.pMutation(0.7);
     ga.pCrossover(0.9);
+    ga.minimaxi(GAGeneticAlgorithm::MAXIMIZE);
+    ga.set(gaNnGenerations, MAX_GENERATIONS);
 
-    //ga.evolve();
-    
+    BestTenOutOfHundredSelector selector;
+    ga.selector(selector);
+
+    GA2DArrayGenome<int> bestGenome = genome;
+    int initialFitness = 0;
+    int bestFitness = SUDOKU_SIZE * SUDOKU_SIZE * SUDOKU_SIZE * SUDOKU_SIZE;
+
     // Evolve and output information for each generation
-    for (int generation = 0; generation < MAX_GENERATIONS; ++generation) {
+    for (int generation = 1; generation <= MAX_GENERATIONS; ++generation) {
         
         ga.evolve();
 
         // Access statistics
         GAStatistics stats = ga.statistics();
 
-        if (generation % 100 == 0){
+        if (generation % 10 == 0) {
             // Output information for each generation
-            std::cout << "Generation " << generation
-                << " Best Fitness: " << stats.bestIndividual().score() << std::endl;
+            std::cout << "Prozent done: " << std::ceil(static_cast<double>(generation) / MAX_GENERATIONS * 100) << "% | Generation " << generation
+                    << " | Best Fitness: " << stats.bestIndividual().score() << std::endl;
         }
+
+        // Check if the current best individual is better than the overall best
+        if (stats.bestIndividual().score() > initialFitness) {
+            
+            initialFitness = stats.bestIndividual().score();
+            bestGenome = (GA2DArrayGenome<int>&)stats.bestIndividual();
+            
+            if (initialFitness == bestFitness){
+                break;
+            }
+        }
+
     }
-    
+
+    /*
+    ga.evolve();
+
     const GA2DArrayGenome<int>& bestGenome = (GA2DArrayGenome<int>&)ga.statistics().bestIndividual();
     
-    //cout << "Best solution found: " << endl;
     for (int i = 0; i < SUDOKU_SIZE; i++) {
         for (int j = 0; j < SUDOKU_SIZE; j++){
-            //cout << bestGenome.gene(i, j) << " ";
             sudoku[i][j] = bestGenome.gene(i, j);
         }
-        //cout << endl;
     }
-    //cout << endl;
+    */
+
 
     // Stop measuring time
     auto end_time = chrono::high_resolution_clock::now();
@@ -418,6 +578,10 @@ int main() {
         << minutes.count() << " minutes, "
         << seconds.count() << " seconds, and "
         << milliseconds.count() << " milliseconds\n" << endl;
+
+ 
+    int finalBestFitness = ga.statistics().bestIndividual().score();
+    std::cout << "\nFinal Best Fitness: " << finalBestFitness << std::endl << std::endl;
 
     cout << "Best found Sudoku Field" << endl;
     printSudoku(sudoku);
