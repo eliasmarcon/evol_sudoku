@@ -20,13 +20,12 @@ g++ -o "$output_executable" "$cpp_file" -lga -fpermissive -Ofast
 
 # Check if compilation was successful
 if [ $? -eq 0 ]; then
-    echo "Compilation of Sudoku creator successful. Running the program..."
+    echo "Compilation of Sudoku creator was successful. Running the program..."
 
     # Run the compiled program and append the output to the file
     "$output_executable" "$sudoku_solutions_file" >> "$output_file"
 
-    echo "Sudoku was saved into $output_file and the $sudoku_solutions_file file."
-
+    echo "Results saved into $output_file."
 else
     echo "Compilation failed. Please check for errors in your C++ code."
 fi

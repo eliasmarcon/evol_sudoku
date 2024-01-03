@@ -26,9 +26,9 @@ std::vector<std::vector<int>> sudoku(SUDOKU_SIZE, std::vector<int>(SUDOKU_SIZE, 
 /*===========================================================================================*/
 
 // Load Sudoku into a 2D vector
-void loadSudoku(std::vector<std::vector<int>>& sudoku, int puzzleNumber) {
+void loadSudoku(const std::string& sudoku_path, int puzzleNumber) {
     // Open the file
-    std::ifstream file("../sudoku_solutions.txt");
+    std::ifstream file(sudoku_path);
 
     // Check if the file is open
     if (!file.is_open()) {
@@ -39,8 +39,11 @@ void loadSudoku(std::vector<std::vector<int>>& sudoku, int puzzleNumber) {
     std::string line;
 
     // Move to the desired puzzle number
-    while (std::getline(file, line) && puzzleNumber > 1) {
-        --puzzleNumber;
+    for (int i = 1; i <= puzzleNumber; ++i) {
+        if (!std::getline(file, line)) {
+            std::cerr << "Error: Not enough puzzles in the file.\n";
+            exit(EXIT_FAILURE); // Exit the program if there are not enough puzzles
+        }
     }
 
     // Read the puzzle line
@@ -471,6 +474,7 @@ int main(int argc, char* argv[]) {
 
     int sudoku_number = atoi(argv[1]);
     NUMBERS_TO_REMOVE = atoi(argv[2]);
+    const std::string sudoku_path = argv[3];
 
     setPopulationSizeAndGenerations(NUMBERS_TO_REMOVE);
 
@@ -481,7 +485,7 @@ int main(int argc, char* argv[]) {
     cout << endl;
 
     // Define the Sudoku puzzle
-    loadSudoku(sudoku, sudoku_number);
+    loadSudoku(sudoku_path, sudoku_number);
     printSudoku(sudoku, "Pre-Solved Sudoku Field Number " + to_string(sudoku_number) + ":");
 
     // Create the initial population

@@ -12,6 +12,8 @@
 #include <random>
 #include <chrono>
 #include <unordered_set>
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 
@@ -350,6 +352,8 @@ string validSudoku(const std::vector<std::vector<int>>& sudoku) {
     return "true";
 }
 
+
+
 #include <ga/GASelector.h>
 class BestTenOutOfHundredSelector : public GASelectionScheme {
     public:
@@ -492,16 +496,46 @@ class BestTenOutOfHundredSelector : public GASelectionScheme {
 
 // Function to save Sudoku to a file
 void saveSudokuToFile(const std::vector<std::vector<int>>& sudoku, const std::string& filename) {
+    std::ifstream inFile(filename);
+    std::ostringstream currentSudoku;
+
+    if (inFile.is_open()) {
+        // Read the contents of the file into a stringstream
+        currentSudoku << inFile.rdbuf();
+        inFile.close();
+    }
+
+    // Convert the stringstream to a string
+    std::string fileContents = currentSudoku.str();
+
+    // Convert the current Sudoku to a string for comparison
+    std::ostringstream currentSudokuStr;
+    for (int i = 0; i < SUDOKU_SIZE; ++i) {
+        for (int j = 0; j < SUDOKU_SIZE; ++j) {
+            currentSudokuStr << sudoku[i][j];
+        }
+    }
+
+    // Check if the Sudoku solution is already present in the file
+    if (fileContents.find(currentSudokuStr.str()) != std::string::npos) {
+        cout << "Sudoku solution is already in the file. Not appending." << endl;
+        return;
+    }
+
+    // Append the Sudoku solution to the file
     std::ofstream outFile(filename, std::ios::app);
-    
+
     if (outFile.is_open()) {
         for (int i = 0; i < SUDOKU_SIZE; ++i) {
             for (int j = 0; j < SUDOKU_SIZE; ++j) {
                 outFile << sudoku[i][j];
             }
         }
+
         outFile << "\n";
         outFile.close();
+
+        cout << "Sudoku solution saved to " << filename << endl;
     } else {
         std::cerr << "Unable to open the file for saving Sudoku solution." << std::endl;
     }
@@ -607,8 +641,10 @@ int main(int argc, char* argv[]) {
     string valid = validSudoku(sudoku);
     cout << "Answer to valid Sudoku --> " << valid << endl;    
 
-    // Save the Sudoku solution to a file
-    saveSudokuToFile(sudoku, solutions_path); 
-    
+    if (valid == "true") {
+        // Save the Sudoku solution to a file
+        saveSudokuToFile(sudoku, solutions_path); 
+    }
+
     return 0;
 }

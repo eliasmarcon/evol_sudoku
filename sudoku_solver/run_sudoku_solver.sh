@@ -1,15 +1,5 @@
 #!/bin/bash
 
-# Check for the number of tasks and diameter arguments
-if [ "$#" -gt 2 ]; then
-    echo "Usage: $0 [<sudokuNumber>] [<numbersToRemove>]"
-    exit 1
-fi
-
-# Set default values if arguments are not provided
-sudokuNumber=${1:-1}
-numbersToRemove=${2:-4}
-
 # set variables
 sudokuSolutions="../sudoku_solutions.txt"
 executable="./out/sudoku_solver"
@@ -18,6 +8,26 @@ outputfile="./sudoku_solver_output.txt"
 
 # read the amount of lines in the file
 lineCount=$(wc -l < "$sudokuSolutions")
+
+# Set default values if arguments are not provided
+sudokuNumber="$lineCount"
+numbersToRemove=(1 + RANDOM % 81)
+
+# Check for the number of arguments
+if [ "$#" -eq 1 ]; then
+    # Only numbersToRemove is provided, use default value for numbersToRemove
+    numbersToRemove=$1
+elif [ "$#" -eq 2 ]; then
+    # Both numbersToRemove and sudokuNumber are provided
+    sudokuNumber=$1
+    numbersToRemove=$2
+elif [ "$#" -gt 2 ]; then
+    # Too many arguments
+    echo "Usage: $0 [<sudokuNumber>] [<numbersToRemove>]"
+    echo "Usage: $0 [<numbersToRemove>] --> default sudokuNumber is last sudoku in $sudokuSolutions"
+    echo "Usage: $0 --> default sudokuNumber is last sudoku in $sudokuSolutions and default numbersToRemove is random between 1 and 81"
+    exit 1
+fi
 
 if [ "$sudokuNumber" -lt 1 ] || [ "$sudokuNumber" -gt "$lineCount" ]; then
     echo "The sudoku number has to be between 1 and $lineCount"
@@ -38,5 +48,5 @@ g++ -o $executable $cpp_file -lga -fpermissive
 
 # Running the executable
 echo "Running the sudoku solver..."
-$executable $sudokuNumber $numbersToRemove >> $outputfile
-echo "Done!"
+$executable $sudokuNumber $numbersToRemove $sudokuSolutions >> $outputfile
+echo "Results saved into $outputfile."
