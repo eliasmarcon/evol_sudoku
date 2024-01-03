@@ -11,9 +11,10 @@ sudokuNumber=${1:-1}
 numbersToRemove=${2:-4}
 
 # set variables
-sudokuSolutions="sudoku_solutions.txt"
+sudokuSolutions="/workspaces/evol_sudoku/sudoku_solutions.txt"
 executable="./out/sudoku_solver"
 cpp_file="./src/sudoku_solver.cpp"
+outputfile="./sudoku_solver_output.txt"
 
 # read the amount of lines in the file
 lineCount=$(wc -l < "$sudokuSolutions")
@@ -24,17 +25,18 @@ if [ "$sudokuNumber" -lt 1 ] || [ "$sudokuNumber" -gt "$lineCount" ]; then
 fi
 
 # check if the numbers to remove are valid has to be between 1 and 15
-if [ "$numbersToRemove" -lt 1 ] || [ "$numbersToRemove" -gt 81 ]; then
-    echo "The numbers to remove has to be between 1 and 81"
+if [ "$numbersToRemove" -lt 2 ] || [ "$numbersToRemove" -gt 81 ]; then
+    echo "The numbers to remove has to be between 2 and 81"
     exit 1
 fi
 
-
 # Compile the C++ file
-g++ -o $executable $cpp_file -lga -fpermissive -Ofast
+g++ -o $executable $cpp_file -lga -fpermissive 
+
+#clear the output file
+> $outputfile
 
 # Running the executable
 echo "Running the sudoku solver..."
-$executable $sudokuNumber $numbersToRemove
-
-
+$executable $sudokuNumber $numbersToRemove >> $outputfile
+echo "Done!"

@@ -16,8 +16,8 @@
 using namespace std;
 
 const int SUDOKU_SIZE = 9;
-const int POPULATION_SIZE = 500; //15000
-const int MAX_GENERATIONS = 45000; //45000
+const int POPULATION_SIZE = 5; //15000
+const int MAX_GENERATIONS = 200000; //45000
 
 bool PRINT_COUNTER = true;
 int REPLACE_COUNTER = 0;
@@ -490,6 +490,23 @@ class BestTenOutOfHundredSelector : public GASelectionScheme {
 //     return 0;
 // }
 
+// Function to save Sudoku to a file
+void saveSudokuToFile(const std::vector<std::vector<int>>& sudoku, const std::string& filename) {
+    std::ofstream outFile(filename, std::ios::app);
+    
+    if (outFile.is_open()) {
+        for (int i = 0; i < SUDOKU_SIZE; ++i) {
+            for (int j = 0; j < SUDOKU_SIZE; ++j) {
+                outFile << sudoku[i][j];
+            }
+        }
+        outFile << "\n";
+        outFile.close();
+    } else {
+        std::cerr << "Unable to open the file for saving Sudoku solution." << std::endl;
+    }
+}
+
 
 int main() {
     
@@ -528,7 +545,7 @@ int main() {
         // Access statistics
         GAStatistics stats = ga.statistics();
 
-        if (generation % 10 == 0) {
+        if (generation % 1 == 0) {
             // Output information for each generation
             std::cout << "Prozent done: " << std::ceil(static_cast<double>(generation) / MAX_GENERATIONS * 100) << "% | Generation " << generation
                     << " | Best Fitness: " << stats.bestIndividual().score() << std::endl;
@@ -552,13 +569,13 @@ int main() {
 
     const GA2DArrayGenome<int>& bestGenome = (GA2DArrayGenome<int>&)ga.statistics().bestIndividual();
     
+    */
+
     for (int i = 0; i < SUDOKU_SIZE; i++) {
         for (int j = 0; j < SUDOKU_SIZE; j++){
             sudoku[i][j] = bestGenome.gene(i, j);
         }
     }
-    */
-
 
     // Stop measuring time
     auto end_time = chrono::high_resolution_clock::now();
@@ -579,9 +596,7 @@ int main() {
         << seconds.count() << " seconds, and "
         << milliseconds.count() << " milliseconds\n" << endl;
 
- 
-    int finalBestFitness = ga.statistics().bestIndividual().score();
-    std::cout << "\nFinal Best Fitness: " << finalBestFitness << std::endl << std::endl;
+    std::cout << "Final Best Fitness: " << initialFitness << std::endl << std::endl;
 
     cout << "Best found Sudoku Field" << endl;
     printSudoku(sudoku);
@@ -590,5 +605,8 @@ int main() {
     string valid = validSudoku(sudoku);
     cout << "Answer to valid Sudoku --> " << valid << endl;    
 
+    // Save the Sudoku solution to a file
+    saveSudokuToFile(sudoku, "/workspaces/evol_sudoku/sudoku_solutions.txt"); 
+    
     return 0;
 }
