@@ -508,9 +508,11 @@ void saveSudokuToFile(const std::vector<std::vector<int>>& sudoku, const std::st
 }
 
 
-int main() {
+int main(int argc, char* argv[]) {
     
     srand(static_cast<unsigned int>(time(nullptr)));
+
+    std::string solutions_path = argv[1];
 
     // Initialize a Sudoku field with zeros
     std::vector<std::vector<int>> sudoku(SUDOKU_SIZE, std::vector<int>(SUDOKU_SIZE, 0));
@@ -606,7 +608,7 @@ int main() {
     cout << "Answer to valid Sudoku --> " << valid << endl;    
 
     // Save the Sudoku solution to a file
-    saveSudokuToFile(sudoku, "/workspaces/evol_sudoku/sudoku_solutions.txt"); 
+    saveSudokuToFile(sudoku, solutions_path); 
     
     return 0;
 }

@@ -28,7 +28,7 @@ std::vector<std::vector<int>> sudoku(SUDOKU_SIZE, std::vector<int>(SUDOKU_SIZE, 
 // Load Sudoku into a 2D vector
 void loadSudoku(std::vector<std::vector<int>>& sudoku, int puzzleNumber) {
     // Open the file
-    std::ifstream file("/workspaces/evol_sudoku/sudoku_solutions.txt");
+    std::ifstream file("../sudoku_solutions.txt");
 
     // Check if the file is open
     if (!file.is_open()) {

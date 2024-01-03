@@ -11,7 +11,7 @@ sudokuNumber=${1:-1}
 numbersToRemove=${2:-4}
 
 # set variables
-sudokuSolutions="/workspaces/evol_sudoku/sudoku_solutions.txt"
+sudokuSolutions="../sudoku_solutions.txt"
 executable="./out/sudoku_solver"
 cpp_file="./src/sudoku_solver.cpp"
 outputfile="./sudoku_solver_output.txt"
