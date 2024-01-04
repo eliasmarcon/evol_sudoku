@@ -44,12 +44,14 @@ The script is divided into two main sections, one for the Sudoku creator and the
 - The script provides usage instructions if the number of arguments is incorrect (it takes a [<sudokuNumber>] and [<numbersToRemove>] argument)
 - The script also performs validation checks on provided arguments, such as ensuring the Sudoku number is within a valid range (between 1 and the max number of sudokus in the `sudoku_solutions.txt`) and the number of fields to remove is between 2 and 81.
 
-Of cores the `run_sudoku_creator.sh` and `run_sudoku_solver.sh` scripts provide the same functionality.
+Of coures the `run_sudoku_creator.sh` and `run_sudoku_solver.sh` scripts provide the same functionality.
 
 
 ## Sudoku Generator
 
 This C++ program generates Sudoku puzzles using a genetic algorithm implemented with the GAlib library. The genetic algorithm evolves a population of Sudoku solutions over several generations, aiming to improve the fitness of the solutions with each iteration.
+It begins by generating valid 3x3 subgrids for each subgrid and marks the diagonal subgrids which are not going to change throughout the evolutions, all the subgrids below and above the diagonal can change (crossover and mutator function). 
+The fixed 3x3 diagonal subgrids are used to make the generation of a valid sudoku faster.
 
 ### Requirements
 - C++ compiler with support for C++11 features

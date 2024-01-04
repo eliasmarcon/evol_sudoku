@@ -371,19 +371,6 @@ void initializer(GAGenome& g) {
         }
     }
 
-    /*
-    cout << "Vector:" << endl;
-    // Display the content of the vector (optional)
-    for (const auto& row : sudoku) {
-        for (int value : row) {
-            std::cout << value << " ";
-        }
-        std::cout << std::endl;
-    }
-
-    cout << endl;
-    */
-
     // Initializer part
     GA2DArrayGenome<int>& genome = (GA2DArrayGenome<int>&)g;
     

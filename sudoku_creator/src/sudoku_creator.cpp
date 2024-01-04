@@ -1,5 +1,6 @@
 #include <ga/GA2DArrayGenome.h>
 #include <ga/GASimpleGA.h>
+#include <ga/GASelector.h>
 #include <ga/std_stream.h>
 #include <ga/GAStatistics.h>
 #include <ctime>
@@ -22,7 +23,6 @@ const int POPULATION_SIZE = 5; //15000
 const int MAX_GENERATIONS = 200000; //45000
 
 bool PRINT_COUNTER = true;
-int REPLACE_COUNTER = 0;
 
 // Global vector to store whether each cell is marked
 std::vector<std::vector<int>> markedCells(SUDOKU_SIZE, std::vector<int>(SUDOKU_SIZE, 0));
@@ -30,6 +30,123 @@ std::vector<std::vector<int>> markedCells(SUDOKU_SIZE, std::vector<int>(SUDOKU_S
 //123456789/123456789/123456789
 std::vector<int> fixedCells = std::vector<int>(SUDOKU_SIZE * 3, 0);
 
+
+/*===========================================================================================*/
+/*===================================== Helper Functions ====================================*/
+/*===========================================================================================*/
+
+// Function to print the Sudoku field
+void printSudoku(const std::vector<std::vector<int>>& sudoku) {
+    for (int i = 0; i < SUDOKU_SIZE; ++i) {
+        if (i > 0 && i % 3 == 0) {
+            std::cout << "---------------------" << std::endl;
+        }
+
+        for (int j = 0; j < SUDOKU_SIZE; ++j) {
+            if (j > 0 && j % 3 == 0) {
+                std::cout << "| ";
+            }
+
+            std::cout << sudoku[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+string validSudoku(const std::vector<std::vector<int>>& sudoku) {
+    int row = 0, col = 0, i = 0, block = 0;
+    int count[9];
+
+    for (row = 0; row < 9; ++row) {
+        memset(count, 0, 9 * sizeof(int));
+        for (col = 0; col < 9; ++col) {
+            if (sudoku[row][col] != '.')
+                ++count[sudoku[row][col] - 1];
+        }
+        for (i = 0; i < 9; ++i)
+            if (count[i] > 1)
+                return "false";
+    }
+
+    for (col = 0; col < 9; ++col) {
+        memset(count, 0, 9 * sizeof(int));
+        for (row = 0; row < 9; ++row) {
+            if (sudoku[row][col] != '.')
+                ++count[sudoku[row][col] - 1];
+        }
+        for (i = 0; i < 9; ++i)
+            if (count[i] > 1)
+                return "false";
+    }
+
+    int block_row = 0, block_col = 0;
+    for (block = 0; block < 9; ++block) {
+        block_row = (block / 3) * 3, block_col = (block % 3) * 3;
+        memset(count, 0, 9 * sizeof(int));
+        for (row = block_row; row < (block_row + 3); ++row)
+            for (col = block_col; col < (block_col + 3); ++col)
+                if (sudoku[row][col] != '.')
+                    ++count[sudoku[row][col] - 1];
+        for (i = 0; i < 9; ++i)
+            if (count[i] > 1)
+                return "false";
+    }
+
+    return "true";
+}
+
+
+// Function to save Sudoku to a file
+void saveSudokuToFile(const std::vector<std::vector<int>>& sudoku, const std::string& filename) {
+    std::ifstream inFile(filename);
+    std::ostringstream currentSudoku;
+
+    if (inFile.is_open()) {
+        // Read the contents of the file into a stringstream
+        currentSudoku << inFile.rdbuf();
+        inFile.close();
+    }
+
+    // Convert the stringstream to a string
+    std::string fileContents = currentSudoku.str();
+
+    // Convert the current Sudoku to a string for comparison
+    std::ostringstream currentSudokuStr;
+    for (int i = 0; i < SUDOKU_SIZE; ++i) {
+        for (int j = 0; j < SUDOKU_SIZE; ++j) {
+            currentSudokuStr << sudoku[i][j];
+        }
+    }
+
+    // Check if the Sudoku solution is already present in the file
+    if (fileContents.find(currentSudokuStr.str()) != std::string::npos) {
+        cout << "Sudoku solution is already in the file. Not appending." << endl;
+        return;
+    }
+
+    // Append the Sudoku solution to the file
+    std::ofstream outFile(filename, std::ios::app);
+
+    if (outFile.is_open()) {
+        for (int i = 0; i < SUDOKU_SIZE; ++i) {
+            for (int j = 0; j < SUDOKU_SIZE; ++j) {
+                outFile << sudoku[i][j];
+            }
+        }
+
+        outFile << "\n";
+        outFile.close();
+
+        cout << "Sudoku solution saved to " << filename << endl;
+    } else {
+        std::cerr << "Unable to open the file for saving Sudoku solution." << std::endl;
+    }
+}
+
+
+/*===========================================================================================*/
+/*======================================= GA Functions ======================================*/
+/*===========================================================================================*/
 
 // Objective function for Sudoku
 float objective(GAGenome& g) {
@@ -58,29 +175,6 @@ float objective(GAGenome& g) {
             }
         }
     }
-    
-    /*
-    // Check each 3x3 subgrid for duplicates
-    for (int blockRow = 0; blockRow < 3; blockRow++) {
-        for (int blockCol = 0; blockCol < 3; blockCol++) {
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 3; j++) {
-                    int row = blockRow * 3 + i;
-                    int col = blockCol * 3 + j;
-                    for (int k = i + 1; k < 3; k++) {
-                        for (int l = 0; l < 3; l++) {
-                            int nextRow = blockRow * 3 + k;
-                            int nextCol = blockCol * 3 + l;
-                            if (genome.gene(row, col) == genome.gene(nextRow, nextCol)) {
-                                fitness--;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    */
     
     return (float)fitness;
 }
@@ -292,69 +386,11 @@ int crossover(const GAGenome& p1, const GAGenome& p2, GAGenome* c1, GAGenome* c2
     }
 }
 
-// Function to print the Sudoku field
-void printSudoku(const std::vector<std::vector<int>>& sudoku) {
-    for (int i = 0; i < SUDOKU_SIZE; ++i) {
-        if (i > 0 && i % 3 == 0) {
-            std::cout << "---------------------" << std::endl;
-        }
 
-        for (int j = 0; j < SUDOKU_SIZE; ++j) {
-            if (j > 0 && j % 3 == 0) {
-                std::cout << "| ";
-            }
+/*===========================================================================================*/
+/*===================================== Selector Class ======================================*/
+/*===========================================================================================*/
 
-            std::cout << sudoku[i][j] << " ";
-        }
-        std::cout << std::endl;
-    }
-}
-
-string validSudoku(const std::vector<std::vector<int>>& sudoku) {
-    int row = 0, col = 0, i = 0, block = 0;
-    int count[9];
-
-    for (row = 0; row < 9; ++row) {
-        memset(count, 0, 9 * sizeof(int));
-        for (col = 0; col < 9; ++col) {
-            if (sudoku[row][col] != '.')
-                ++count[sudoku[row][col] - 1];
-        }
-        for (i = 0; i < 9; ++i)
-            if (count[i] > 1)
-                return "false";
-    }
-
-    for (col = 0; col < 9; ++col) {
-        memset(count, 0, 9 * sizeof(int));
-        for (row = 0; row < 9; ++row) {
-            if (sudoku[row][col] != '.')
-                ++count[sudoku[row][col] - 1];
-        }
-        for (i = 0; i < 9; ++i)
-            if (count[i] > 1)
-                return "false";
-    }
-
-    int block_row = 0, block_col = 0;
-    for (block = 0; block < 9; ++block) {
-        block_row = (block / 3) * 3, block_col = (block % 3) * 3;
-        memset(count, 0, 9 * sizeof(int));
-        for (row = block_row; row < (block_row + 3); ++row)
-            for (col = block_col; col < (block_col + 3); ++col)
-                if (sudoku[row][col] != '.')
-                    ++count[sudoku[row][col] - 1];
-        for (i = 0; i < 9; ++i)
-            if (count[i] > 1)
-                return "false";
-    }
-
-    return "true";
-}
-
-
-
-#include <ga/GASelector.h>
 class BestTenOutOfHundredSelector : public GASelectionScheme {
     public:
         GADefineIdentity("BestTenOutOfHundredSelector", 0);
@@ -375,8 +411,8 @@ class BestTenOutOfHundredSelector : public GASelectionScheme {
         }
 
         virtual GAGenome& select() const {
-            const int numCandidates = POPULATION_SIZE * 0.5;  // Change the number of candidates
-            const int numSelected = POPULATION_SIZE * 0.3;     // Change the number of selected individuals
+            const int numCandidates = POPULATION_SIZE * 0.5;  
+            const int numSelected = POPULATION_SIZE * 0.3;    
 
             int idx[numCandidates];
             GAGenome* candidates[numCandidates];
@@ -397,150 +433,10 @@ class BestTenOutOfHundredSelector : public GASelectionScheme {
         }
 };
 
-// int main() {
-    
-//     srand(static_cast<unsigned int>(time(nullptr)));
 
-//     // Initialize a Sudoku field with zeros
-//     std::vector<std::vector<int>> sudoku(SUDOKU_SIZE, std::vector<int>(SUDOKU_SIZE, 0));
-
-//     // Start measuring time
-//     auto start_time = chrono::high_resolution_clock::now();
-
-//     GA2DArrayGenome<int> genome(SUDOKU_SIZE, SUDOKU_SIZE, objective);
-//     genome.initializer(initializer);
-//     genome.mutator(mutator);
-//     genome.crossover(crossover);
-
-//     GASimpleGA ga(genome);
-//     ga.populationSize(POPULATION_SIZE);
-//     ga.nGenerations(MAX_GENERATIONS);
-//     ga.pMutation(0.3);
-//     ga.pCrossover(0.9);
-
-//     // ga.evolve();
-
-//     GA2DArrayGenome<int> bestGenome = genome;
-//     int initialFitness = 0;
-//     int bestFitness = SUDOKU_SIZE * SUDOKU_SIZE * SUDOKU_SIZE * SUDOKU_SIZE;
-
-//     // Evolve and output information for each generation
-//     for (int generation = 1; generation <= MAX_GENERATIONS; ++generation) {
-        
-//         ga.evolve();
-
-//         // Access statistics
-//         GAStatistics stats = ga.statistics();
-
-//         if (generation % 100 == 0) {
-//             // Output information for each generation
-//             std::cout << "Prozent done: " << std::ceil(static_cast<double>(generation) / MAX_GENERATIONS * 100) << "% | Generation " << generation
-//                     << " | Best Fitness: " << stats.bestIndividual().score() << std::endl;
-//         }
-
-//         // Check if the current best individual is better than the overall best
-//         if (stats.bestIndividual().score() > initialFitness) {
-            
-//             initialFitness = stats.bestIndividual().score();
-//             bestGenome = (GA2DArrayGenome<int>&)stats.bestIndividual();
-            
-//             if (initialFitness == bestFitness){
-//                 break;
-//             }
-//         }
-
-//     }
-    
-//     // const GA2DArrayGenome<int>& bestGenome = (GA2DArrayGenome<int>&)ga.statistics().bestIndividual();
-//     // float finalBestFitness = ga.statistics().bestIndividual().score();
-//     std::cout << "\nFinal Best Fitness: " << initialFitness << std::endl << std::endl;
-
-//     //cout << "Best solution found: " << endl;
-//     for (int i = 0; i < SUDOKU_SIZE; i++) {
-//         for (int j = 0; j < SUDOKU_SIZE; j++){
-//             //cout << bestGenome.gene(i, j) << " ";
-//             sudoku[i][j] = bestGenome.gene(i, j);
-//         }
-//         //cout << endl;
-//     }
-//     //cout << endl;
-
-//     // Stop measuring time
-//     auto end_time = chrono::high_resolution_clock::now();
-//     auto duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time);
-
-//     // Calculate hours, minutes, and seconds
-//     auto hours = chrono::duration_cast<chrono::hours>(duration);
-//     duration -= hours;
-//     auto minutes = chrono::duration_cast<chrono::minutes>(duration);
-//     duration -= minutes;
-//     auto seconds = chrono::duration_cast<chrono::seconds>(duration);
-//     duration -= seconds;
-//     auto milliseconds = chrono::duration_cast<chrono::milliseconds>(duration);
-
-//     // Print elapsed time in hours, minutes, seconds, and milliseconds
-//     cout << "\nTime taken for evolution: " << hours.count() << " hours, "
-//         << minutes.count() << " minutes, "
-//         << seconds.count() << " seconds, and "
-//         << milliseconds.count() << " milliseconds\n" << endl;
-
-//     cout << "Best found Sudoku Field" << endl;
-//     printSudoku(sudoku);
-//     cout << endl;
-
-//     string valid = validSudoku(sudoku);
-//     cout << "Answer to valid Sudoku --> " << valid << endl;    
-
-//     return 0;
-// }
-
-// Function to save Sudoku to a file
-void saveSudokuToFile(const std::vector<std::vector<int>>& sudoku, const std::string& filename) {
-    std::ifstream inFile(filename);
-    std::ostringstream currentSudoku;
-
-    if (inFile.is_open()) {
-        // Read the contents of the file into a stringstream
-        currentSudoku << inFile.rdbuf();
-        inFile.close();
-    }
-
-    // Convert the stringstream to a string
-    std::string fileContents = currentSudoku.str();
-
-    // Convert the current Sudoku to a string for comparison
-    std::ostringstream currentSudokuStr;
-    for (int i = 0; i < SUDOKU_SIZE; ++i) {
-        for (int j = 0; j < SUDOKU_SIZE; ++j) {
-            currentSudokuStr << sudoku[i][j];
-        }
-    }
-
-    // Check if the Sudoku solution is already present in the file
-    if (fileContents.find(currentSudokuStr.str()) != std::string::npos) {
-        cout << "Sudoku solution is already in the file. Not appending." << endl;
-        return;
-    }
-
-    // Append the Sudoku solution to the file
-    std::ofstream outFile(filename, std::ios::app);
-
-    if (outFile.is_open()) {
-        for (int i = 0; i < SUDOKU_SIZE; ++i) {
-            for (int j = 0; j < SUDOKU_SIZE; ++j) {
-                outFile << sudoku[i][j];
-            }
-        }
-
-        outFile << "\n";
-        outFile.close();
-
-        cout << "Sudoku solution saved to " << filename << endl;
-    } else {
-        std::cerr << "Unable to open the file for saving Sudoku solution." << std::endl;
-    }
-}
-
+/*===========================================================================================*/
+/*====================================== Main Function ======================================*/
+/*===========================================================================================*/
 
 int main(int argc, char* argv[]) {
     
@@ -599,13 +495,6 @@ int main(int argc, char* argv[]) {
         }
 
     }
-
-    /*
-    ga.evolve();
-
-    const GA2DArrayGenome<int>& bestGenome = (GA2DArrayGenome<int>&)ga.statistics().bestIndividual();
-    
-    */
 
     for (int i = 0; i < SUDOKU_SIZE; i++) {
         for (int j = 0; j < SUDOKU_SIZE; j++){
