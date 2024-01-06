@@ -18,8 +18,8 @@
 using namespace std;
 
 const int SUDOKU_SIZE = 9;
-const int POPULATION_SIZE = 5; //5
-const int MAX_GENERATIONS = 200000; //200000
+const int POPULATION_SIZE = 1500; //5
+const int MAX_GENERATIONS = 20000; //200000
 
 bool PRINT_COUNTER = true;
 
@@ -257,46 +257,52 @@ string validSudoku(const std::vector<std::vector<int>>& sudoku) {
 
 
 #include <ga/GASelector.h>
-class BestTenOutOfHundredSelector : public GASelectionScheme {
-    public:
-        GADefineIdentity("BestTenOutOfHundredSelector", 0);
+class BestTwoOutOfFiveSelector : public GASelectionScheme {
+public:
+    GADefineIdentity("BestTwoOutOfFiveSelector", 0);
 
-        BestTenOutOfHundredSelector() : GASelectionScheme() {}
-        virtual ~BestTenOutOfHundredSelector() {}
+    BestTwoOutOfFiveSelector() : GASelectionScheme() {}
+    virtual ~BestTwoOutOfFiveSelector() {}
 
-        virtual GASelectionScheme* clone() const {
-            return new BestTenOutOfHundredSelector;
+    virtual GASelectionScheme* clone() const {
+        return new BestTwoOutOfFiveSelector;
+    }
+
+    virtual void assign(GAPopulation& p) {
+        GASelectionScheme::assign(p);
+    }
+
+    virtual void update() {
+        GASelectionScheme::update();
+    }
+
+    virtual GAGenome& select() const {
+        int idx[5];
+        GAGenome* candidates[5];
+
+        for (int i = 0; i < 5; ++i) {
+            idx[i] = GARandomInt(0, pop->size() - 1);
+            candidates[i] = &(pop->individual(idx[i]));
         }
 
-        virtual void assign(GAPopulation& p) {
-            GASelectionScheme::assign(p);
+        GAGenome* best1 = candidates[0];
+        GAGenome* best2 = candidates[1];
+
+        if (best2->score() > best1->score()) {
+            swap(best1, best2);
         }
 
-        virtual void update() {
-            GASelectionScheme::update();
-        }
-
-        virtual GAGenome& select() const {
-            const int numCandidates = POPULATION_SIZE * 0.5;  // Change the number of candidates
-            const int numSelected = POPULATION_SIZE * 0.3;     // Change the number of selected individuals
-
-            int idx[numCandidates];
-            GAGenome* candidates[numCandidates];
-
-            for (int i = 0; i < numCandidates; ++i) {
-                idx[i] = GARandomInt(0, pop->size() - 1);
-                candidates[i] = &(pop->individual(idx[i]));
+        for (int i = 2; i < 5; ++i) {
+            if (candidates[i]->score() > best2->score()) {
+                best2 = candidates[i];
+                if (best2->score() > best1->score()) {
+                    swap(best1, best2);
+                }
             }
-
-            // Sort candidates based on their scores in descending order
-            std::sort(candidates, candidates + numCandidates,
-                    [](const GAGenome* a, const GAGenome* b) {
-                        return a->score() > b->score();
-                    });
-
-            // Return a reference to the 10th best individual
-            return *candidates[numSelected - 1];
         }
+
+        return *best2;
+    }
 };
 
 // Function to save Sudoku to a file
@@ -371,7 +377,7 @@ int main(int argc, char* argv[]) {
     ga.minimaxi(GAGeneticAlgorithm::MAXIMIZE);
     ga.set(gaNnGenerations, MAX_GENERATIONS);
 
-    BestTenOutOfHundredSelector selector;
+    BestTwoOutOfFiveSelector selector;
     ga.selector(selector);
 
     GA2DArrayGenome<int> bestGenome = genome;

@@ -1,0 +1,15 @@
+Initial Genome: 
+3 4 8 9 1 2 7 6 5 
+9 8 2 1 6 3 5 7 4 
+3 8 5 6 7 9 2 1 4 
+8 3 4 5 6 2 7 1 9 
+7 2 5 1 9 4 6 8 3 
+4 7 3 5 2 1 6 9 8 
+1 9 6 2 8 7 3 4 5 
+6 4 2 1 5 3 8 7 9 
+4 8 1 5 2 6 3 9 7 
+
+Prozent done: 1% | Generation 1 | Best Fitness: 6520
+Prozent done: 1% | Generation 2 | Best Fitness: 6520
+Prozent done: 1% | Generation 3 | Best Fitness: 6528
+Prozent done: 1% | Generation 4 | Best Fitness: 6523
