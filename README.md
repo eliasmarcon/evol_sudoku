@@ -2,14 +2,16 @@
 
 ### Notes
 - Ensure that the GAlib library is correctly installed and linked during compilation.
-- Adjust the program parameters (e.g., population size, mutation probability) in the source code as needed.
-- The program utilizes a genetic algorithm to evolve Sudoku solutions. The genetic operations include initialization, mutation, and crossover.
+- Adjust the program parameters (e.g., population size, generation size) in the source code as needed.
+- The program utilizes a genetic algorithm to create and solve Sudoku solutions. The genetic operations include initialization, mutation, and crossover as well as selection.
+
+---
 
 ### Disclaimer
 This program is provided as-is and may require adjustments based on your specific environment and requirements.
 Feel free to explore and modify the source code for experimentation and customization.
 
-**Also the ideal usage would be to just run the `run_creator_solver.sh` script to generate a sudoku field and also solve a sudoku field.**
+**Also the ideal usage would be to just run the `run_creator_solver.sh` script to generate a new sudoku field and also solve the newly created sudoku field, with a specific number of values which are replaced. ! Also make sure to execute the `run_creator_solver.sh` script in the default folder**
 
 ### Folder Structure
 
@@ -35,17 +37,22 @@ Feel free to explore and modify the source code for experimentation and customiz
 
 - `run_creator_solver.sh`: this bash script runs both bash scripts `run_sudoku_creator.sh`, and `run_sudoku_solver.sh` after another and saves the results in the mentioned txt files
 
-- `sudoku_solutions.txt`: in this txt file all valid sudokus are saved from the `sudoku_creator.cpp` script
+- `sudoku_solutions.txt`: in this txt file **ALL** valid sudokus are saved from the `sudoku_creator.cpp` script
 
-The `run_creator_solver.sh` script runs both the generator and solver, but each bash script (generator, solver) can be run independently if wanted. The `run_creator_solver.sh` bash script automates the compilation and execution of the two C++ programs: a Sudoku creator and a Sudoku solver.
+---
+
+### Run Creator and Solver Bash Script
+
+The `run_creator_solver.sh` script compiles and runs both the generator and solver.cpp files, but each .cpp file (generator, solver) can be run independently if wanted (therefore are the additional bash scripts for the generator and solver). The `run_creator_solver.sh` bash script automates the compilation and execution of the two C++ programs: a Sudoku creator and a Sudoku solver.
 The script is divided into two main sections, one for the Sudoku creator and the other for the Sudoku solver.
 
 #### Usage for the `run_creator_solver.sh`:
-- The script provides usage instructions if the number of arguments is incorrect (it takes a [<sudokuNumber>] and [<numbersToRemove>] argument)
-- The script also performs validation checks on provided arguments, such as ensuring the Sudoku number is within a valid range (between 1 and the max number of sudokus in the `sudoku_solutions.txt`) and the number of fields to remove is between 2 and 81.
+- The script provides usage instructions if the number of arguments is incorrect (it takes a `<sudokuNumber>` (which is the number of the sudoku which should be taken) and `<numbersToRemove>` (number of fields which are replaced with default values) argument, each with different defaut values so both arguments are optional)
+- The script also performs validation checks on provided arguments, such as ensuring the Sudoku number is within a valid range (between 1 and the max number of sudokus in the `sudoku_solutions.txt` file) and the number of fields to remove is between 2 and 81.
 
-Of coures the `run_sudoku_creator.sh` and `run_sudoku_solver.sh` scripts provide the same functionality.
+**Of coures the `run_sudoku_creator.sh` and `run_sudoku_solver.sh` scripts provide the same functionality. If you run them separately make sure to be in the correct folder (cd into sudoku_creator for the `run_sudoku_creator.sh` file and cd into sudoku_solver for the `run_sudoku_solver.sh` file)**
 
+---
 
 ## Sudoku Generator
 
@@ -65,21 +72,25 @@ g++ -o ./sudoku_creator/out/sudoku_creator ./sudoku_creator/src/sudoku_creator.c
 ```
 
 ### Usage
+
 Run the compiled program using the following command:
 
+- the `<sudoku_solutions_file.txt>` argument is the path where the `sudoku_solutions.txt` file is
+
 ```sh
-./sudoku_creator/out/sudoku_creator <sudoku_solutions_file.txt>
+./sudoku_creator/out/sudoku_creator <path_sudoku_solutions_file.txt>
 ```
 
 or run the included bash script `run_sudoku_creator.sh` using the following command:
 
 ```sh
-./sudoku_creator/run_sudoku_creator.sh
+cd ./sudoku_creator
+./run_sudoku_creator.sh
 ```
 
 ### Output
 The program will output information about the evolution process, including the progress percentage, generation number, and the best fitness achieved. 
-The final Sudoku solution will be displayed, and its validity will be checked. If the solution is valid, it will be saved to the specified output file to store it with other solutions.
+The final Sudoku solution will be displayed, and its validity will be checked. If the solution is valid and the sudoku does not appear in the `sudoku_solutions.txt` file, it will be saved to the file to store it with other solutions.
 
 The program generates a Sudoku puzzle and outputs the following information:
 
@@ -95,6 +106,7 @@ The mentioned output will also be saved in a txt file which is at `./sudoku_crea
 ### Saving Solutions
 The program appends the generated Sudoku solution to the specified output file. If the solution is already present in the file, it will not be appended again.
 
+---
 
 ## Sudoku Solver
 
@@ -114,15 +126,22 @@ g++ -o ./sudoku_solver/out/sudoku_solver ./sudoku_solver/src/sudoku_solver.cpp -
 ### Usage
 Run the compiled program using the following command:
 
+- the `<sudoku_number>` argument is the number of the sudoku which should be taken from the `sudoku_solutions.txt` file
+- the `<numbers_to_remove>` argument is the number of random fields which should be replaced with a random value (1-9) 
+- the `<sudoku_solutions_file.txt>` argument is the path where the `sudoku_solutions.txt` file is
+
 ```sh
-./sudoku_solver/out/sudoku_solver <sudoku_number> <numbers_to_remove> <sudoku_solutions_file.txt>
+./sudoku_solver/out/sudoku_solver <sudoku_number> <numbers_to_remove> <path_sudoku_solutions_file.txt>
 ```
 
 or 
 
 ```sh
-./sudoku_solver/run_sudoku_solver.sh [<sudoku_number>] [<numbers_to_remove>]
+cd ./sudoku_solver
+./run_sudoku_solver.sh [<sudoku_number>] [<numbers_to_remove>]
 ```
+
+
 
 ### Output
 The program will output information about the evolution process, including population size, maximum generations, progress, and the best fitness achieved.
