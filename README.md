@@ -47,7 +47,7 @@ The `run_creator_solver.sh` script compiles and runs both the generator and solv
 The script is divided into two main sections, one for the Sudoku creator and the other for the Sudoku solver.
 
 #### Usage for the `run_creator_solver.sh`:
-- The script provides usage instructions if the number of arguments is incorrect (it takes a `<sudokuNumber>` (which is the number of the sudoku which should be taken) and `<numbersToRemove>` (number of fields which are replaced with default values) argument, each with different defaut values so both arguments are optional)
+- The script provides usage instructions if the number of arguments is incorrect (it takes a `<sudokuNumber>` (which is the number of the sudoku which should be taken) and `<numbersToRemove>` (number of fields which are replaced). Both arguments have default values and are therefore pootinal, so they dont have to be provided for a valid run.
 - The script also performs validation checks on provided arguments, such as ensuring the Sudoku number is within a valid range (between 1 and the max number of sudokus in the `sudoku_solutions.txt` file) and the number of fields to remove is between 2 and 81.
 
 **Of coures the `run_sudoku_creator.sh` and `run_sudoku_solver.sh` scripts provide the same functionality. If you run them separately make sure to be in the correct folder (cd into sudoku_creator for the `run_sudoku_creator.sh` file and cd into sudoku_solver for the `run_sudoku_solver.sh` file)**

@@ -11,7 +11,7 @@ lineCount=$(wc -l < "$sudokuSolutions")
 
 # Set default values if arguments are not provided
 sudokuNumber="$lineCount"
-numbersToRemove=(1 + RANDOM % 81)
+numbersToRemove=$((RANDOM % 6 + 2))
 
 # Check for the number of arguments
 if [ "$#" -eq 1 ]; then
