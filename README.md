@@ -157,8 +157,3 @@ The program generates the following output:
 - Finished Sudoku Field: Presents the solved Sudoku puzzle.
 - Answer Validity: Indicates whether the solved Sudoku puzzle is valid.
 - The output information is saved in a txt file located at `./sudoku_solver/sudoku_solver_output.txt.`
-
-
-## Authors
-
-- Elias Marcon MSc. | [@eliasmarcon](https://github.com/eliasmarcon)
